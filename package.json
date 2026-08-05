@@ -1,0 +1,17 @@
+{
+  "name": "@hacker-house-medellin/hhm-libs",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "JavaScript reference libraries for Hacker House Medell\u00edn.",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "lint": "node --check src/index.mjs",
+    "test:all": "bash scripts/test.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

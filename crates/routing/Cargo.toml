@@ -1,0 +1,9 @@
+[package]
+name = "hhm-routing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Deterministic routing helpers for Hacker House Medellín"
+
+[dependencies]
+hhm-contracts = { path = "../contracts" }

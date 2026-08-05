@@ -1,0 +1,19 @@
+[package]
+org = "hacker-house-medellin"
+name = "hhm-libs"
+version = "0.1.0"
+description = "Shared contracts and runtime-light libraries for Hacker House Medellín"
+license = "MIT"
+language = "rust"
+
+[package.repository]
+vcs = "git"
+url = "https://github.com/hacker-house-medellin/hhm-libs"
+
+[publish]
+include_readme = true
+tag_format = "v{version}"
+exclude = [".env", ".env.*", "node_modules/**", "target/**", "dist/**", "*.log"]
+
+[scripts]
+test = "bash scripts/test.sh"
