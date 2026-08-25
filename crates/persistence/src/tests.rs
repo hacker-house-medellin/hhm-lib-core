@@ -91,6 +91,15 @@ fn context_rejects_an_empty_capability_set() {
     assert_eq!(error.kind(), PersistenceErrorKind::MissingCapability);
 }
 
+#[test]
+fn context_debug_output_redacts_every_identity_dimension() {
+    let debug = format!("{:?}", context(ReservationCapability::Read));
+    assert!(!debug.contains(TENANT_ID));
+    assert!(!debug.contains(USER_ID));
+    assert!(!debug.contains(SERVICE_ID));
+    assert!(debug.contains("[redacted]"));
+}
+
 #[tokio::test]
 async fn read_capability_cannot_create_and_touches_no_database_state() {
     let database = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
@@ -221,6 +230,28 @@ async fn corrupt_stored_status_fails_closed_without_echoing_the_value() {
     assert_eq!(error.kind(), PersistenceErrorKind::CorruptRecord);
     assert!(!format!("{error:?}").contains("administrator"));
     assert!(!error.to_string().contains("administrator"));
+}
+
+#[tokio::test]
+async fn a_row_outside_the_requested_scope_fails_closed() {
+    let mut wrong_scope = stored_row("requested");
+    wrong_scope.tenant_id = "tenant-other".into();
+    let database = MockDatabase::new(DatabaseBackend::Postgres)
+        .append_exec_results([MockExecResult {
+            last_insert_id: 0,
+            rows_affected: 0,
+        }])
+        .append_query_results([[wrong_scope]])
+        .into_connection();
+    let store = ReservationStore::new(&database);
+    let error = store
+        .find_by_id(
+            &context(ReservationCapability::Read),
+            stored_row("requested").id,
+        )
+        .await
+        .expect_err("an inconsistent adapter result must not cross tenant scope");
+    assert_eq!(error.kind(), PersistenceErrorKind::CorruptRecord);
 }
 
 #[tokio::test]

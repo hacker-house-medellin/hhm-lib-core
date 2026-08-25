@@ -10,10 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+      - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: ./scripts/test.sh
+      - run: ./scripts/check-secret-diff.sh "$TRUSTED_BASE_SHA"
+        env:
+          TRUSTED_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
