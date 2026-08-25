@@ -1,6 +1,6 @@
 [package]
 org = "hacker-house-medellin"
-name = "hhm-libs"
+name = "hhm-lib-core"
 version = "0.1.0"
 description = "Shared contracts and runtime-light libraries for Hacker House Medellín"
 license = "MIT"
@@ -8,13 +8,14 @@ language = "rust"
 
 [package.repository]
 vcs = "git"
-url = "https://github.com/hacker-house-medellin/hhm-libs"
+url = "https://github.com/hacker-house-medellin/hhm-lib-core"
 
 [install]
 dir = ".vendor/.zed"
 
 [dependencies]
-"hacker-house-medellin/hhm-interfaces" = "^0.1.0"
+# Cargo.lock and immutable Cargo Git revisions remain authoritative until the
+# corresponding Zed artifacts are published.
 
 [publish]
 include_readme = true
