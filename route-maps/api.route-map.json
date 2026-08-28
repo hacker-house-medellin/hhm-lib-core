@@ -1,0 +1,113 @@
+{
+  "schema_version": "2.0.0",
+  "service": "hhm-api",
+  "title": "Hacker House Medellín reservations API",
+  "version": "0.1.0",
+  "description": "The JSON API implemented by hhm-api-server.rs and by its twin crate hhm-api (both register the same four routes over the same types). Keys are operations; values are typed routes. Every parameter and payload names a type in `types`, so the generated clients type-check against this file.",
+  "types": {
+    "ReservationId": {
+      "kind": "scalar",
+      "base": "Uuid",
+      "doc": "Server-minted id for one reservation. Distinct from a bare string so a client cannot pass an arbitrary id."
+    },
+    "ReservationStatus": {
+      "kind": "enum",
+      "variants": ["pending", "confirmed", "checked_in", "checked_out", "cancelled"],
+      "doc": "RESERVATION_STATUSES in main.rs. The handler trims and lowercases the incoming string before checking it against this set, so these are exactly the values that survive validation and the only ones a stored record can carry."
+    },
+    "Reservation": {
+      "kind": "record",
+      "doc": "One stay, as the API stores and returns it. Field order follows the Rust struct.",
+      "fields": {
+        "id": "ReservationId",
+        "created_at": "DateTime",
+        "updated_at": "DateTime",
+        "member_name": "String",
+        "room_type": "String",
+        "check_in": "DateTime",
+        "check_out": "DateTime",
+        "workspace_plan": "String",
+        "status": "ReservationStatus",
+        "notes": "String"
+      }
+    },
+    "CreateReservation": {
+      "kind": "record",
+      "doc": "Request body for creating a stay. Every field is required: the Rust struct carries no `#[serde(default)]` and no `Option<..>`, so a missing key fails in the `Json<..>` extractor before the handler runs. `notes` is required but may be the empty string.",
+      "fields": {
+        "member_name": { "type": "String", "doc": "Trimmed; must be non-empty and at most 200 characters." },
+        "room_type": { "type": "String", "doc": "Trimmed; must be non-empty and at most 100 characters." },
+        "check_in": "DateTime",
+        "check_out": { "type": "DateTime", "doc": "Must be strictly after `check_in`, and no more than 366 days later." },
+        "workspace_plan": { "type": "String", "doc": "Trimmed; must be non-empty and at most 100 characters." },
+        "status": "ReservationStatus",
+        "notes": { "type": "String", "doc": "Trimmed; at most 4000 characters. May be empty." }
+      }
+    },
+    "ReservationEvent": {
+      "kind": "record",
+      "doc": "The frame broadcast on the websocket after a create. It is not an HTTP response body, so no route declares it; it is declared here because it is part of the wire contract.",
+      "fields": {
+        "event": { "type": "String", "doc": "Always `reservation.created` today -- the only event the server emits." },
+        "reservation": "Reservation"
+      }
+    },
+    "Health": {
+      "kind": "record",
+      "fields": {
+        "service": "String",
+        "status": "String",
+        "database_configured": "Bool",
+        "supabase_configured": "Bool"
+      }
+    },
+    "ApiError": {
+      "kind": "record",
+      "doc": "The error envelope every failing handler returns.",
+      "fields": { "code": "String", "message": "String" }
+    }
+  },
+  "map": {
+    "healthz": {
+      "path": "/healthz",
+      "methods": ["GET"],
+      "summary": "Liveness plus which optional backends are configured.",
+      "response": "Health"
+    },
+    "list_reservations": {
+      "path": "/v1/reservations",
+      "methods": ["GET"],
+      "summary": "Every reservation, oldest `created_at` first.",
+      "response": { "kind": "list", "item": "Reservation" }
+    },
+    "create_reservation": {
+      "path": "/v1/reservations",
+      "methods": ["POST"],
+      "summary": "Create a stay. Responds 201 with the stored record.",
+      "doc": "Queued through opto-sync: this is the org's one durable write, and hhm-sync is built to reconcile exactly these records (it merges arrays by `id` with last-writer-wins on `updated_at`). The queue mints its own record id because the request body carries none -- the server mints the authoritative `Reservation.id` when it accepts the call.",
+      "request": "CreateReservation",
+      "response": "Reservation",
+      "errors": { "422": "ApiError", "500": "ApiError" },
+      "delivery": "opto_sync_queued",
+      "opto_sync": {
+        "table": "hhm_reservations",
+        "record_id_from": "uuid",
+        "operation": "upsert"
+      }
+    },
+    "get_reservation": {
+      "path": "/v1/reservations/{id}",
+      "methods": ["GET"],
+      "summary": "One reservation by id.",
+      "path_params": { "id": "ReservationId" },
+      "response": "Reservation",
+      "errors": { "404": "ApiError" }
+    },
+    "reservation_events": {
+      "path": "/v1/ws",
+      "methods": ["GET"],
+      "summary": "Websocket upgrade. Frames are `ReservationEvent` JSON; the server answers ping with pong and sends nothing else.",
+      "client": false
+    }
+  }
+}
