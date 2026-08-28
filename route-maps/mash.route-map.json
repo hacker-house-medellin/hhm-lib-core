@@ -1,0 +1,57 @@
+{
+  "schema_version": "2.0.0",
+  "service": "hhm-mash-web",
+  "title": "Hacker House Medellín (mash web)",
+  "version": "0.1.0",
+  "description": "hhm-mash-web registers the same surface as hhm-web-server.rs, in a denser formatting style. Kept as its own map because it is its own deployable service on its own port.",
+  "types": {
+    "Health": {
+      "kind": "record",
+      "doc": "Built inline with serde_json::json!, so the field names below are the whole contract.",
+      "fields": {
+        "status": "String",
+        "database": { "type": "Bool", "doc": "True when DATABASE_URL was set and the SeaORM connection succeeded at boot." },
+        "supabase": { "type": "Bool", "doc": "True when SUPABASE_URL was set." }
+      }
+    },
+    "NewItem": {
+      "kind": "record",
+      "doc": "The urlencoded body of the HTMX create form. Both fields are required: the Rust struct has no defaults, and both inputs carry the HTML `required` attribute.",
+      "fields": { "title": "String", "detail": "String" }
+    }
+  },
+  "map": {
+    "home": {
+      "path": "/",
+      "methods": ["GET"],
+      "summary": "Server-rendered dashboard (maud) with the HTMX create form.",
+      "client": false
+    },
+    "healthz": {
+      "path": "/healthz",
+      "methods": ["GET"],
+      "summary": "Liveness plus which optional backends are configured.",
+      "response": "Health"
+    },
+    "list_reservations_partial": {
+      "path": "/partials/reservations",
+      "methods": ["GET"],
+      "summary": "The reservation list as an HTML fragment, swapped into #items by HTMX.",
+      "client": false
+    },
+    "create_reservation_partial": {
+      "path": "/partials/reservations",
+      "methods": ["POST"],
+      "summary": "Append an item from the browser form and re-render the list fragment. Returns HTML, not JSON.",
+      "request": "NewItem",
+      "content_type": "form",
+      "client": false
+    },
+    "reservation_events": {
+      "path": "/ws",
+      "methods": ["GET"],
+      "summary": "Websocket upgrade. Frames are the plain-text string `created:<uuid>`, not JSON; the page uses them only as a hint to re-fetch the list fragment.",
+      "client": false
+    }
+  }
+}

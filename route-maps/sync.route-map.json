@@ -1,0 +1,63 @@
+{
+  "schema_version": "2.0.0",
+  "service": "hhm-sync",
+  "title": "Hacker House Medellín sync gateway",
+  "version": "0.1.0",
+  "description": "The opto-sync reconciliation gateway (syncer.rs). It merges two JSON documents with array-merge-by-key on `id` and last-writer-wins on `updated_at`/`synced_at`, which is what makes the queued `create_reservation` operation in api.route-map.json safe to replay.",
+  "types": {
+    "Health": {
+      "kind": "record",
+      "doc": "Built inline in the route closure with serde_json::json!.",
+      "fields": { "status": "String", "service": "String" }
+    },
+    "ReconcileRequest": {
+      "kind": "record",
+      "fields": {
+        "base": { "type": "Json", "doc": "The document already held. Any JSON value; in practice an array of reservation records." },
+        "incoming": { "type": "Json", "doc": "The document to merge in. Any JSON value, of the same shape as `base`." }
+      }
+    },
+    "ReconcileResponse": {
+      "kind": "record",
+      "fields": {
+        "merged": { "type": "Json", "doc": "The merged document." },
+        "engine": { "type": "String", "doc": "Constant `opto-sync/syncer.rs`." },
+        "contract": { "type": "String", "doc": "Constant `hhm_interfaces::Reservation` -- what the server claims it merges. Note that hhm-interfaces::Reservation (title/summary/space_name/starts_at/ends_at) is not the shape hhm-api actually serves (room_type/check_in/check_out/workspace_plan/notes); this string is a label, not a checked contract." }
+      }
+    },
+    "MergeError": {
+      "kind": "record",
+      "doc": "Returned with 422 when the two documents cannot be merged.",
+      "fields": { "error": "String", "message": "String" }
+    }
+  },
+  "map": {
+    "healthz": {
+      "path": "/healthz",
+      "methods": ["GET"],
+      "summary": "Liveness.",
+      "response": "Health"
+    },
+    "readyz": {
+      "path": "/readyz",
+      "methods": ["GET"],
+      "summary": "Readiness probe. Answers 204 with an empty body, so there is no response type."
+    },
+    "reconcile": {
+      "path": "/v1/reconcile",
+      "methods": ["POST"],
+      "summary": "Merge two documents and return the result.",
+      "request": "ReconcileRequest",
+      "response": "ReconcileResponse",
+      "errors": { "422": "MergeError" }
+    },
+    "reconcile_api_alias": {
+      "path": "/api/v1/reconcile",
+      "methods": ["POST"],
+      "summary": "The same handler, mounted a second time under /api. Kept because deployed callers use both prefixes.",
+      "request": "ReconcileRequest",
+      "response": "ReconcileResponse",
+      "errors": { "422": "MergeError" }
+    }
+  }
+}
