@@ -1,4 +1,4 @@
-# hhm-libs
+# hhm-lib-core
 
 Shared, runtime-light libraries for **Hacker House Medellín**.
 
