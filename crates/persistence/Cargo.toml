@@ -1,0 +1,16 @@
+[package]
+name = "hhm-persistence"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Tenant-, user-, and service-scoped SeaORM persistence for Hacker House Medellín"
+
+[dependencies]
+chrono = "0.4"
+hhm-interfaces = { git = "https://github.com/hacker-house-medellin/hhm-interfaces", rev = "4079822762f23d014fe0dd8d138b823c0c0758e5" }
+sea-orm = { version = "=1.1.20", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-chrono", "with-uuid"] }
+uuid = "1"
+
+[dev-dependencies]
+sea-orm = { version = "=1.1.20", default-features = false, features = ["mock", "runtime-tokio-rustls", "sqlx-postgres", "with-chrono", "with-uuid"] }
+tokio = { version = "1", features = ["macros", "rt"] }
