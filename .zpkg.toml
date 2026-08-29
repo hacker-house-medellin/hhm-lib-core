@@ -2,7 +2,7 @@
 org = "hacker-house-medellin"
 name = "hhm-lib-core"
 version = "0.1.0"
-description = "Shared contracts and runtime-light libraries for Hacker House Medellín"
+description = "Shared contracts and scoped SeaORM persistence for Hacker House Medellín"
 license = "MIT"
 language = "rust"
 
@@ -14,8 +14,10 @@ url = "https://github.com/hacker-house-medellin/hhm-lib-core"
 dir = ".vendor/.zed"
 
 [dependencies]
-# Cargo.lock and immutable Cargo Git revisions remain authoritative until the
-# corresponding Zed artifacts are published.
+# Cargo pins hhm-interfaces to reviewed immutable revision
+# 4079822762f23d014fe0dd8d138b823c0c0758e5. Keep that edge solely under
+# Cargo.lock authority until the matching Zed artifact is published and the
+# resolver can record it here and in .zpkg.lock together.
 
 [publish]
 include_readme = true
