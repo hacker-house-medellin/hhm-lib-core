@@ -244,6 +244,7 @@ CREATE TABLE hhm_submission_outbox (
   CONSTRAINT hhm_submission_outbox_identity UNIQUE (submission_kind, submission_id),
   CONSTRAINT hhm_submission_outbox_kind CHECK (
     submission_kind = 'pre_interest'
+    OR submission_kind = 'upload'
     OR submission_kind = 'application'
     OR submission_kind = 'referral'
   ),

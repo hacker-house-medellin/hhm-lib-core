@@ -170,7 +170,7 @@ CREATE TABLE IF NOT EXISTS "public"."hhm_submission_outbox" (
   "updated_at" timestamp with time zone NOT NULL DEFAULT transaction_timestamp(),
   CONSTRAINT "hhm_submission_outbox_attempts" CHECK (((attempts >= 0) AND (attempts <= 100))),
   CONSTRAINT "hhm_submission_outbox_identity" UNIQUE (submission_kind, submission_id),
-  CONSTRAINT "hhm_submission_outbox_kind" CHECK ((((submission_kind)::text = 'pre_interest'::text) OR ((submission_kind)::text = 'application'::text) OR ((submission_kind)::text = 'referral'::text))),
+  CONSTRAINT "hhm_submission_outbox_kind" CHECK ((((submission_kind)::text = 'pre_interest'::text) OR ((submission_kind)::text = 'upload'::text) OR ((submission_kind)::text = 'application'::text) OR ((submission_kind)::text = 'referral'::text))),
   CONSTRAINT "hhm_submission_outbox_mirror" CHECK ((((mirror_status)::text = 'pending'::text) OR ((mirror_status)::text = 'mirrored'::text) OR ((mirror_status)::text = 'retryable_failure'::text) OR ((mirror_status)::text = 'terminal_failure'::text))),
   CONSTRAINT "hhm_submission_outbox_pkey" PRIMARY KEY (id),
   CONSTRAINT "hhm_submission_outbox_sha256" CHECK ((payload_sha256 ~ '^[a-f0-9]{64}$'::text))
