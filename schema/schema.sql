@@ -33,7 +33,7 @@ CREATE TABLE hhm_pre_interests (
   updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
   CONSTRAINT hhm_pre_interests_sha256 CHECK (payload_sha256 ~ '^[a-f0-9]{64}$'),
   CONSTRAINT hhm_pre_interests_email CHECK (email = btrim(email) AND position('@' IN email) > 1),
-  CONSTRAINT hhm_pre_interests_linkedin CHECK (linkedin_url ~ '^https://(www\\.)?linkedin\\.(com|cn)/in/'),
+  CONSTRAINT hhm_pre_interests_linkedin CHECK (linkedin_url ~ '^https://(www\.)?linkedin\.(com|cn)/in/'),
   CONSTRAINT hhm_pre_interests_idea CHECK (char_length(entrepreneurship_idea) BETWEEN 40 AND 4000),
   CONSTRAINT hhm_pre_interests_stay CHECK (
     stay_preference = 'three_months' OR stay_preference = 'six_months'
@@ -136,9 +136,9 @@ CREATE TABLE hhm_applications (
   updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
   CONSTRAINT hhm_applications_sha256 CHECK (payload_sha256 ~ '^[a-f0-9]{64}$'),
   CONSTRAINT hhm_applications_email CHECK (email = btrim(email) AND position('@' IN email) > 1),
-  CONSTRAINT hhm_applications_linkedin CHECK (linkedin_url ~ '^https://(www\\.)?linkedin\\.(com|cn)/in/'),
+  CONSTRAINT hhm_applications_linkedin CHECK (linkedin_url ~ '^https://(www\.)?linkedin\.(com|cn)/in/'),
   CONSTRAINT hhm_applications_adult CHECK (date_of_birth <= (current_date - INTERVAL '18 years')::date AND date_of_birth >= DATE '1900-01-01'),
-  CONSTRAINT hhm_applications_github CHECK (github_url IS NULL OR github_url ~ '^https://github\\.com/'),
+  CONSTRAINT hhm_applications_github CHECK (github_url IS NULL OR github_url ~ '^https://github\.com/'),
   CONSTRAINT hhm_applications_portfolio CHECK (portfolio_url IS NULL OR portfolio_url ~ '^https://'),
   CONSTRAINT hhm_applications_idea CHECK (char_length(entrepreneurship_idea) BETWEEN 80 AND 8000),
   CONSTRAINT hhm_applications_project_stage CHECK (
@@ -200,7 +200,7 @@ CREATE TABLE hhm_referrals (
   updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
   CONSTRAINT hhm_referrals_sha256 CHECK (payload_sha256 ~ '^[a-f0-9]{64}$'),
   CONSTRAINT hhm_referrals_email CHECK (referee_email = btrim(referee_email) AND position('@' IN referee_email) > 1),
-  CONSTRAINT hhm_referrals_linkedin CHECK (referee_linkedin_url ~ '^https://(www\\.)?linkedin\\.(com|cn)/in/'),
+  CONSTRAINT hhm_referrals_linkedin CHECK (referee_linkedin_url ~ '^https://(www\.)?linkedin\.(com|cn)/in/'),
   CONSTRAINT hhm_referrals_rationale CHECK (char_length(rationale) BETWEEN 40 AND 4000),
   CONSTRAINT hhm_referrals_stay CHECK (
     stay_preference IS NULL
