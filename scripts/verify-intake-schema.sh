@@ -26,6 +26,22 @@ INSERT INTO hhm_user_points_ledger (
   'ci-admin'
 );
 
+INSERT INTO hhm_user_points_ledger (
+  subject,
+  delta,
+  reason_code,
+  source_submission_id,
+  idempotency_key,
+  actor_subject
+) VALUES (
+  'ci-subject',
+  -10,
+  'application_credit_redeemed',
+  gen_random_uuid(),
+  'ci-points-redemption',
+  'ci-admin'
+);
+
 DO $verify_points$
 DECLARE
   current_balance bigint;
@@ -36,11 +52,35 @@ BEGIN
   FROM hhm_user_points_accounts
   WHERE subject = 'ci-subject';
 
-  IF current_balance <> 25 OR current_lifetime <> 25 THEN
+  IF current_balance <> 15 OR current_lifetime <> 25 THEN
     RAISE EXCEPTION 'points trigger did not materialize the expected account state';
   END IF;
 END
 $verify_points$;
+
+DO $verify_overdraw$
+BEGIN
+  BEGIN
+    INSERT INTO hhm_user_points_ledger (
+      subject,
+      delta,
+      reason_code,
+      idempotency_key,
+      actor_subject
+    ) VALUES (
+      'ci-subject',
+      -16,
+      'application_credit_overdraw',
+      'ci-points-overdraw',
+      'ci-admin'
+    );
+    RAISE EXCEPTION 'points ledger unexpectedly permitted a negative balance';
+  EXCEPTION
+    WHEN check_violation THEN
+      NULL;
+  END;
+END
+$verify_overdraw$;
 
 DO $verify_immutable$
 BEGIN

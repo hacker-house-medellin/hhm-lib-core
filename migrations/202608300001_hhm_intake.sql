@@ -227,22 +227,31 @@ AS $function$
 DECLARE
   updated_rows integer;
 BEGIN
-  INSERT INTO hhm_user_points_accounts (
-    subject, balance, lifetime_earned, lifetime_redeemed, version
-  ) VALUES (
-    NEW.subject,
-    NEW.delta,
-    GREATEST(NEW.delta, 0),
-    GREATEST(-NEW.delta, 0),
-    1
-  )
-  ON CONFLICT (subject) DO UPDATE SET
-    balance = hhm_user_points_accounts.balance + EXCLUDED.balance,
-    lifetime_earned = hhm_user_points_accounts.lifetime_earned + EXCLUDED.lifetime_earned,
-    lifetime_redeemed = hhm_user_points_accounts.lifetime_redeemed + EXCLUDED.lifetime_redeemed,
-    version = hhm_user_points_accounts.version + 1,
-    updated_at = transaction_timestamp()
-  WHERE hhm_user_points_accounts.balance + EXCLUDED.balance >= 0;
+  IF NEW.delta > 0 THEN
+    INSERT INTO hhm_user_points_accounts (
+      subject, balance, lifetime_earned, lifetime_redeemed, version
+    ) VALUES (
+      NEW.subject,
+      NEW.delta,
+      NEW.delta,
+      0,
+      1
+    )
+    ON CONFLICT (subject) DO UPDATE SET
+      balance = hhm_user_points_accounts.balance + NEW.delta,
+      lifetime_earned = hhm_user_points_accounts.lifetime_earned + NEW.delta,
+      version = hhm_user_points_accounts.version + 1,
+      updated_at = transaction_timestamp();
+  ELSE
+    UPDATE hhm_user_points_accounts
+    SET
+      balance = balance + NEW.delta,
+      lifetime_redeemed = lifetime_redeemed - NEW.delta,
+      version = version + 1,
+      updated_at = transaction_timestamp()
+    WHERE subject = NEW.subject
+      AND balance + NEW.delta >= 0;
+  END IF;
 
   GET DIAGNOSTICS updated_rows = ROW_COUNT;
   IF updated_rows <> 1 THEN
