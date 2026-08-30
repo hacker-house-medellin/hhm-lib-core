@@ -7,8 +7,8 @@
 use std::time::Duration;
 
 use sea_orm::{
-    ConnectOptions, ConnectionTrait, Database, DatabaseBackend, DatabaseConnection, Statement,
-    TransactionTrait, TryGetable,
+    ConnectOptions, ConnectionTrait, Database, DatabaseBackend, DatabaseConnection,
+    DatabaseTransaction, Statement, TransactionTrait, TryGetable,
 };
 use url::Url;
 use uuid::Uuid;
@@ -17,6 +17,8 @@ const MAX_CONNECTIONS: u32 = 8;
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const ACQUIRE_TIMEOUT: Duration = Duration::from_secs(3);
 const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+const MAX_RETRYABLE_FAILURES: i32 = 10;
+const MAX_LEASE_ATTEMPTS: i32 = 100;
 
 /// Secret-bearing connection input plus the reviewed, non-secret RDS identity.
 ///
@@ -116,6 +118,58 @@ pub struct AdminAction<'a> {
     pub reason: &'a str,
 }
 
+/// One fenced admin action leased to a single worker execution.
+///
+/// This type intentionally does not implement `Debug`: it contains the raw
+/// actor subject needed for the product ledger and must not enter logs.
+pub struct ClaimedAdminAction {
+    operation_id: Uuid,
+    lease_token: Uuid,
+    actor_subject: String,
+    resource: String,
+    action: String,
+    attempts: i32,
+}
+
+impl ClaimedAdminAction {
+    #[must_use]
+    pub const fn operation_id(&self) -> Uuid {
+        self.operation_id
+    }
+
+    #[must_use]
+    pub const fn lease_token(&self) -> Uuid {
+        self.lease_token
+    }
+
+    #[must_use]
+    pub fn actor_subject(&self) -> &str {
+        &self.actor_subject
+    }
+
+    #[must_use]
+    pub fn resource(&self) -> &str {
+        &self.resource
+    }
+
+    #[must_use]
+    pub fn action(&self) -> &str {
+        &self.action
+    }
+
+    #[must_use]
+    pub const fn attempts(&self) -> i32 {
+        self.attempts
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AdminActionOutcome<'a> {
+    Succeeded,
+    Rejected { error_code: &'a str },
+    RetryableFailure { error_code: &'a str },
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum AdminOrmError {
     #[error("admin database operation failed")]
@@ -134,6 +188,12 @@ pub enum AdminOrmError {
     ReadCredentialWritable,
     #[error("admin API credential cannot write to the admin database")]
     WriteCredentialReadOnly,
+    #[error("admin worker identifier is invalid")]
+    InvalidWorkerId,
+    #[error("admin action error code is invalid")]
+    InvalidErrorCode,
+    #[error("admin action lease is no longer current")]
+    LeaseLost,
 }
 
 #[derive(Clone)]
@@ -355,11 +415,285 @@ impl AdminWriteContext {
             .map_err(AdminOrmError::Database)?;
         Ok(operation_id)
     }
+
+    /// Claims at most one ready action using a database lease and
+    /// `FOR UPDATE SKIP LOCKED`.
+    ///
+    /// Expired leases are eligible for a new token. Every completion must
+    /// present the exact token returned here, fencing late workers after a
+    /// reclaim.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid worker identifier, query failure, or
+    /// malformed persisted action.
+    pub async fn claim_action(
+        &self,
+        worker_id: &str,
+    ) -> Result<Option<ClaimedAdminAction>, AdminOrmError> {
+        if !valid_bounded_token(worker_id, 3, 64) {
+            return Err(AdminOrmError::InvalidWorkerId);
+        }
+        let transaction = self
+            .connection
+            .begin()
+            .await
+            .map_err(AdminOrmError::Database)?;
+        expire_exhausted_leases(&transaction).await?;
+        let lease_token = Uuid::new_v4();
+        let claimed = claim_next_action(&transaction, lease_token, worker_id).await?;
+        let Some(row) = claimed else {
+            transaction
+                .commit()
+                .await
+                .map_err(AdminOrmError::Database)?;
+            return Ok(None);
+        };
+        let claimed = claimed_action_from_row(&row)?;
+        transaction
+            .execute(Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                "UPDATE admin_action_requests SET status = 'running' WHERE operation_id = $1::uuid",
+                [claimed.operation_id.to_string().into()],
+            ))
+            .await
+            .map_err(AdminOrmError::Database)?;
+        transaction
+            .commit()
+            .await
+            .map_err(AdminOrmError::Database)?;
+        Ok(Some(claimed))
+    }
+
+    /// Completes a claimed action only while its exact lease token remains
+    /// current. Retryable failures receive bounded exponential backoff and are
+    /// dead-lettered after the reviewed retry limit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AdminOrmError::LeaseLost`] for a stale completion, or a typed
+    /// validation/database error.
+    pub async fn complete_action(
+        &self,
+        operation_id: Uuid,
+        lease_token: Uuid,
+        outcome: AdminActionOutcome<'_>,
+    ) -> Result<(), AdminOrmError> {
+        if operation_id.is_nil() || lease_token.is_nil() {
+            return Err(AdminOrmError::LeaseLost);
+        }
+        let error_code = match outcome {
+            AdminActionOutcome::Succeeded => None,
+            AdminActionOutcome::Rejected { error_code }
+            | AdminActionOutcome::RetryableFailure { error_code } => {
+                if !valid_bounded_token(error_code, 2, 64) {
+                    return Err(AdminOrmError::InvalidErrorCode);
+                }
+                Some(error_code)
+            }
+        };
+        let transaction = self
+            .connection
+            .begin()
+            .await
+            .map_err(AdminOrmError::Database)?;
+        let lease = transaction
+            .query_one(Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                "SELECT attempts
+                 FROM admin_action_outbox
+                 WHERE operation_id = $1::uuid
+                   AND lease_token = $2::uuid
+                   AND delivery_status = 'delivering'
+                   AND lease_expires_at > transaction_timestamp()
+                 FOR UPDATE",
+                [
+                    operation_id.to_string().into(),
+                    lease_token.to_string().into(),
+                ],
+            ))
+            .await
+            .map_err(AdminOrmError::Database)?
+            .ok_or(AdminOrmError::LeaseLost)?;
+        let attempts = i32::try_get(&lease, "", "attempts").map_err(|_| AdminOrmError::Decode)?;
+        let terminal_retry = matches!(outcome, AdminActionOutcome::RetryableFailure { .. })
+            && attempts >= MAX_RETRYABLE_FAILURES;
+
+        let (delivery_status, request_status, completed, retry) = match outcome {
+            AdminActionOutcome::Succeeded => ("delivered", "succeeded", true, false),
+            AdminActionOutcome::Rejected { .. } => ("delivered", "rejected", true, false),
+            AdminActionOutcome::RetryableFailure { .. } if terminal_retry => {
+                ("dead_letter", "failed", true, false)
+            }
+            AdminActionOutcome::RetryableFailure { .. } => ("failed", "accepted", false, true),
+        };
+        let updated = transaction
+            .execute(Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                "UPDATE admin_action_outbox
+                 SET delivery_status = $3,
+                     available_at = CASE WHEN $4
+                       THEN transaction_timestamp()
+                         + make_interval(secs => LEAST(3600, (1 << LEAST(attempts, 11))))
+                       ELSE available_at
+                     END,
+                     delivered_at = CASE WHEN $5 THEN transaction_timestamp() ELSE NULL END,
+                     last_error_code = $6,
+                     lease_token = NULL,
+                     lease_expires_at = NULL,
+                     claimed_by = NULL
+                 WHERE operation_id = $1::uuid
+                   AND lease_token = $2::uuid
+                   AND delivery_status = 'delivering'",
+                vec![
+                    operation_id.to_string().into(),
+                    lease_token.to_string().into(),
+                    delivery_status.into(),
+                    retry.into(),
+                    completed.into(),
+                    error_code.into(),
+                ],
+            ))
+            .await
+            .map_err(AdminOrmError::Database)?;
+        if updated.rows_affected() != 1 {
+            return Err(AdminOrmError::LeaseLost);
+        }
+        transaction
+            .execute(Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                "UPDATE admin_action_requests
+                 SET status = $2,
+                     completed_at = CASE WHEN $3 THEN transaction_timestamp() ELSE NULL END
+                 WHERE operation_id = $1::uuid",
+                vec![
+                    operation_id.to_string().into(),
+                    request_status.into(),
+                    completed.into(),
+                ],
+            ))
+            .await
+            .map_err(AdminOrmError::Database)?;
+        transaction.commit().await.map_err(AdminOrmError::Database)
+    }
+}
+
+async fn expire_exhausted_leases(transaction: &DatabaseTransaction) -> Result<(), AdminOrmError> {
+    transaction
+        .execute(Statement::from_string(
+            DatabaseBackend::Postgres,
+            format!(
+                r"
+                    WITH exhausted AS (
+                        UPDATE admin_action_outbox
+                        SET delivery_status = 'dead_letter',
+                            last_error_code = 'lease_attempts_exhausted',
+                            lease_token = NULL,
+                            lease_expires_at = NULL,
+                            claimed_by = NULL
+                        WHERE delivery_status = 'delivering'
+                          AND lease_expires_at <= transaction_timestamp()
+                          AND attempts >= {MAX_LEASE_ATTEMPTS}
+                        RETURNING operation_id
+                    )
+                    UPDATE admin_action_requests
+                    SET status = 'failed', completed_at = transaction_timestamp()
+                    WHERE operation_id IN (SELECT operation_id FROM exhausted)
+                "
+            ),
+        ))
+        .await
+        .map_err(AdminOrmError::Database)?;
+    Ok(())
+}
+
+async fn claim_next_action(
+    transaction: &DatabaseTransaction,
+    lease_token: Uuid,
+    worker_id: &str,
+) -> Result<Option<sea_orm::QueryResult>, AdminOrmError> {
+    transaction
+        .query_one(Statement::from_sql_and_values(
+            DatabaseBackend::Postgres,
+            format!(
+                r"
+                    WITH candidate AS (
+                        SELECT outbox.operation_id
+                        FROM admin_action_outbox AS outbox
+                        JOIN admin_action_requests AS request
+                          ON request.operation_id = outbox.operation_id
+                        WHERE (
+                            (outbox.delivery_status IN ('pending', 'failed')
+                              AND outbox.available_at <= transaction_timestamp())
+                            OR (outbox.delivery_status = 'delivering'
+                              AND outbox.lease_expires_at <= transaction_timestamp())
+                        )
+                          AND outbox.attempts < {MAX_LEASE_ATTEMPTS}
+                          AND request.status IN ('accepted', 'running')
+                        ORDER BY outbox.available_at, outbox.operation_id
+                        FOR UPDATE OF outbox SKIP LOCKED
+                        LIMIT 1
+                    )
+                    UPDATE admin_action_outbox AS outbox
+                    SET delivery_status = 'delivering',
+                        attempts = outbox.attempts + 1,
+                        lease_token = $1::uuid,
+                        lease_expires_at = transaction_timestamp() + interval '30 seconds',
+                        claimed_by = $2,
+                        last_error_code = NULL
+                    FROM candidate, admin_action_requests AS request
+                    WHERE outbox.operation_id = candidate.operation_id
+                      AND request.operation_id = candidate.operation_id
+                    RETURNING
+                      outbox.operation_id::text AS operation_id,
+                      outbox.lease_token::text AS lease_token,
+                      outbox.attempts,
+                      request.actor_subject,
+                      request.resource,
+                      request.action
+                "
+            ),
+            [lease_token.to_string().into(), worker_id.into()],
+        ))
+        .await
+        .map_err(AdminOrmError::Database)
+}
+
+fn claimed_action_from_row(
+    row: &sea_orm::QueryResult,
+) -> Result<ClaimedAdminAction, AdminOrmError> {
+    Ok(ClaimedAdminAction {
+        operation_id: operation_id_from_row(row)?,
+        lease_token: uuid_from_row(row, "lease_token")?,
+        actor_subject: String::try_get(row, "", "actor_subject")
+            .map_err(|_| AdminOrmError::Decode)?,
+        resource: String::try_get(row, "", "resource").map_err(|_| AdminOrmError::Decode)?,
+        action: String::try_get(row, "", "action").map_err(|_| AdminOrmError::Decode)?,
+        attempts: i32::try_get(row, "", "attempts").map_err(|_| AdminOrmError::Decode)?,
+    })
 }
 
 fn operation_id_from_row(row: &sea_orm::QueryResult) -> Result<Uuid, AdminOrmError> {
     let value = String::try_get(row, "", "operation_id").map_err(|_| AdminOrmError::Decode)?;
     Uuid::parse_str(&value).map_err(|_| AdminOrmError::InvalidOperationId)
+}
+
+fn uuid_from_row(row: &sea_orm::QueryResult, column: &str) -> Result<Uuid, AdminOrmError> {
+    let value = String::try_get(row, "", column).map_err(|_| AdminOrmError::Decode)?;
+    Uuid::parse_str(&value).map_err(|_| AdminOrmError::InvalidOperationId)
+}
+
+fn valid_bounded_token(value: &str, minimum: usize, maximum: usize) -> bool {
+    (minimum..=maximum).contains(&value.len())
+        && value.bytes().enumerate().all(|(index, byte)| {
+            if index == 0 {
+                byte.is_ascii_lowercase()
+            } else {
+                byte.is_ascii_lowercase()
+                    || byte.is_ascii_digit()
+                    || matches!(byte, b'_' | b'-' | b'.' | b':')
+            }
+        })
 }
 
 async fn ready(connection: &DatabaseConnection) -> Result<(), AdminOrmError> {
@@ -478,7 +812,13 @@ async fn has_permission(
 
 #[cfg(test)]
 mod tests {
-    use super::{AdminDatabaseConfig, AdminPermission};
+    use sea_orm::{ConnectionTrait, Database, DatabaseBackend, Statement, TryGetable};
+    use uuid::Uuid;
+
+    use super::{
+        AdminAction, AdminActionOutcome, AdminDatabaseConfig, AdminOrmError, AdminPermission,
+        AdminWriteContext,
+    };
 
     #[test]
     fn permissions_have_stable_database_values() {
@@ -511,6 +851,92 @@ mod tests {
             }
             .validate()
             .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn worker_lease_fences_stale_completion() {
+        let Ok(database_url) = std::env::var("HHM_TEST_ADMIN_DATABASE_URL") else {
+            eprintln!("skipping admin outbox integration test: database URL is not configured");
+            return;
+        };
+        let connection = Database::connect(database_url)
+            .await
+            .expect("admin test database connection");
+        let context = AdminWriteContext {
+            connection: connection.clone(),
+        };
+        let actor = format!("test-admin-{}", Uuid::new_v4());
+        connection
+            .execute(Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                "INSERT INTO admin_principals (shared_auth_subject, status, permissions)
+                 VALUES ($1, 'active', ARRAY['admin:write'])",
+                [actor.as_str().into()],
+            ))
+            .await
+            .expect("admin principal");
+        let idempotency_key = format!("admin-test-{}", Uuid::new_v4());
+        let operation_id = context
+            .record_action(&AdminAction {
+                idempotency_key: &idempotency_key,
+                actor_subject: &actor,
+                actor_session_id: "test-session",
+                resource: "application:00000000-0000-0000-0000-000000000001",
+                action: "intake.application.start_review",
+                reason: "Verify fenced admin outbox completion",
+            })
+            .await
+            .expect("record admin action");
+        let claimed = context
+            .claim_action("worker-test-1")
+            .await
+            .expect("claim action")
+            .expect("one ready action");
+        assert_eq!(claimed.operation_id(), operation_id);
+        assert_eq!(claimed.attempts(), 1);
+        assert!(
+            context
+                .claim_action("worker-test-2")
+                .await
+                .expect("second claim")
+                .is_none()
+        );
+        assert!(matches!(
+            context
+                .complete_action(operation_id, Uuid::new_v4(), AdminActionOutcome::Succeeded,)
+                .await,
+            Err(AdminOrmError::LeaseLost)
+        ));
+        context
+            .complete_action(
+                operation_id,
+                claimed.lease_token(),
+                AdminActionOutcome::Succeeded,
+            )
+            .await
+            .expect("complete current lease");
+
+        let row = connection
+            .query_one(Statement::from_sql_and_values(
+                DatabaseBackend::Postgres,
+                "SELECT request.status AS request_status,
+                        outbox.delivery_status AS delivery_status
+                 FROM admin_action_requests AS request
+                 JOIN admin_action_outbox AS outbox USING (operation_id)
+                 WHERE request.operation_id = $1::uuid",
+                [operation_id.to_string().into()],
+            ))
+            .await
+            .expect("load completed action")
+            .expect("completed action row");
+        assert_eq!(
+            String::try_get(&row, "", "request_status").expect("request status"),
+            "succeeded"
+        );
+        assert_eq!(
+            String::try_get(&row, "", "delivery_status").expect("delivery status"),
+            "delivered"
         );
     }
 }

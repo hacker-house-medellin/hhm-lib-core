@@ -10,7 +10,8 @@ unless PostgreSQL reports `transaction_read_only=on`. The API receives
 `AdminWriteContext`, which rejects a read-only credential. Neither context
 exposes its SeaORM connection, and consumers cannot submit arbitrary SQL.
 
-Schema and migration authority remains with the product lib-core. This package
+`schema/admin-db-contract.sql` is the declarative authority owned by product
+lib-core and applied only by deployment tooling. This package
 performs only the named readiness, grant, dashboard, and idempotent action
 operations required by the isolated admin plane; it never runs migrations.
 At connection time the adapter also verifies the exact configured PostgreSQL host,
@@ -21,3 +22,6 @@ credentials. Pool sizes and timeouts are deliberately bounded.
 Idempotent writes bind a key to the full actor/session/action payload. A changed
 payload returns a conflict instead of replaying another administrator's result. Each
 accepted action writes its durable audit outbox event in the same transaction.
+Workers claim events with expiring, token-fenced leases. A late completion cannot
+overwrite a reclaimed action, and retryable failures use bounded backoff before a
+terminal dead-letter state.
