@@ -46,17 +46,35 @@ DO $verify_points$
 DECLARE
   current_balance bigint;
   current_lifetime bigint;
+  account_id uuid;
 BEGIN
-  SELECT balance, lifetime_earned
-  INTO current_balance, current_lifetime
+  SELECT id, balance, lifetime_earned
+  INTO account_id, current_balance, current_lifetime
   FROM hhm_user_points_accounts
   WHERE subject = 'ci-subject';
 
-  IF current_balance <> 15 OR current_lifetime <> 25 THEN
+  IF account_id IS NULL OR current_balance <> 15 OR current_lifetime <> 25 THEN
     RAISE EXCEPTION 'points trigger did not materialize the expected account state';
   END IF;
 END
 $verify_points$;
+
+DO $verify_application_fence$
+DECLARE
+  application_columns integer;
+BEGIN
+  SELECT count(*)
+  INTO application_columns
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'hhm_applications'
+    AND column_name IN ('status_version', 'last_admin_operation_id');
+
+  IF application_columns <> 2 THEN
+    RAISE EXCEPTION 'application admin-transition fence columns are missing';
+  END IF;
+END
+$verify_application_fence$;
 
 DO $verify_overdraw$
 BEGIN

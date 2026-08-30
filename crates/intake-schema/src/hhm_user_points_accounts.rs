@@ -9,6 +9,8 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     #[serde(skip_deserializing)]
     pub subject: String,
+    #[sea_orm(unique)]
+    pub id: Uuid,
     pub balance: i64,
     pub lifetime_earned: i64,
     pub lifetime_redeemed: i64,

@@ -131,6 +131,8 @@ CREATE TABLE hhm_applications (
   age_and_identity_attestation boolean NOT NULL,
   privacy_notice_version varchar(64) NOT NULL,
   status varchar(32) NOT NULL DEFAULT 'submitted',
+  status_version bigint NOT NULL DEFAULT 0,
+  last_admin_operation_id uuid,
   mirror_status varchar(32) NOT NULL DEFAULT 'pending',
   submitted_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
   updated_at timestamptz NOT NULL DEFAULT transaction_timestamp(),
@@ -153,6 +155,7 @@ CREATE TABLE hhm_applications (
   ),
   CONSTRAINT hhm_applications_attestation CHECK (age_and_identity_attestation),
   CONSTRAINT hhm_applications_uploads_distinct CHECK (resume_upload_id <> photo_id_upload_id),
+  CONSTRAINT hhm_applications_status_version CHECK (status_version >= 0),
   CONSTRAINT hhm_applications_status CHECK (
     status = 'submitted'
     OR status = 'under_review'
@@ -267,6 +270,7 @@ FOR EACH ROW EXECUTE FUNCTION hhm_touch_updated_at();
 
 CREATE TABLE hhm_user_points_accounts (
   subject varchar(255) PRIMARY KEY,
+  id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
   balance bigint NOT NULL DEFAULT 0,
   lifetime_earned bigint NOT NULL DEFAULT 0,
   lifetime_redeemed bigint NOT NULL DEFAULT 0,

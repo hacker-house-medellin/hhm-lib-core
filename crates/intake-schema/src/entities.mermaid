@@ -25,6 +25,8 @@ erDiagram
         bool age_and_identity_attestation
         varchar privacy_notice_version
         varchar status
+        bigint status_version
+        uuid last_admin_operation_id
         varchar mirror_status
         timestamptz submitted_at
         timestamptz updated_at
@@ -93,6 +95,7 @@ erDiagram
     }
     hhm_user_points_accounts {
         varchar subject PK
+        uuid id UK
         bigint balance
         bigint lifetime_earned
         bigint lifetime_redeemed

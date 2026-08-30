@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS "public"."hhm_applications" (
   "age_and_identity_attestation" boolean NOT NULL,
   "privacy_notice_version" character varying(64) NOT NULL,
   "status" character varying(32) NOT NULL DEFAULT 'submitted'::character varying,
+  "status_version" bigint NOT NULL DEFAULT 0,
+  "last_admin_operation_id" uuid,
   "mirror_status" character varying(32) NOT NULL DEFAULT 'pending'::character varying,
   "submitted_at" timestamp with time zone NOT NULL DEFAULT transaction_timestamp(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT transaction_timestamp(),
@@ -55,6 +57,7 @@ CREATE TABLE IF NOT EXISTS "public"."hhm_applications" (
   CONSTRAINT "hhm_applications_project_stage" CHECK ((((project_stage)::text = 'idea'::text) OR ((project_stage)::text = 'prototype'::text) OR ((project_stage)::text = 'early_revenue'::text) OR ((project_stage)::text = 'growing'::text) OR ((project_stage)::text = 'nonprofit_or_open_source'::text))),
   CONSTRAINT "hhm_applications_sha256" CHECK ((payload_sha256 ~ '^[a-f0-9]{64}$'::text)),
   CONSTRAINT "hhm_applications_status" CHECK ((((status)::text = 'submitted'::text) OR ((status)::text = 'under_review'::text) OR ((status)::text = 'needs_information'::text) OR ((status)::text = 'interview'::text) OR ((status)::text = 'accepted'::text) OR ((status)::text = 'waitlisted'::text) OR ((status)::text = 'declined'::text) OR ((status)::text = 'withdrawn'::text))),
+  CONSTRAINT "hhm_applications_status_version" CHECK ((status_version >= 0)),
   CONSTRAINT "hhm_applications_stay" CHECK ((((stay_preference)::text = 'three_months'::text) OR ((stay_preference)::text = 'six_months'::text))),
   CONSTRAINT "hhm_applications_uploads_distinct" CHECK ((resume_upload_id <> photo_id_upload_id))
 );
@@ -180,12 +183,14 @@ CREATE INDEX hhm_submission_outbox_retry_idx ON public.hhm_submission_outbox USI
 -- create table: public.hhm_user_points_accounts
 CREATE TABLE IF NOT EXISTS "public"."hhm_user_points_accounts" (
   "subject" character varying(255) NOT NULL,
+  "id" uuid NOT NULL DEFAULT gen_random_uuid(),
   "balance" bigint NOT NULL DEFAULT 0,
   "lifetime_earned" bigint NOT NULL DEFAULT 0,
   "lifetime_redeemed" bigint NOT NULL DEFAULT 0,
   "version" bigint NOT NULL DEFAULT 0,
   "updated_at" timestamp with time zone NOT NULL DEFAULT transaction_timestamp(),
   CONSTRAINT "hhm_user_points_accounts_balance" CHECK ((balance >= 0)),
+  CONSTRAINT "hhm_user_points_accounts_id_key" UNIQUE (id),
   CONSTRAINT "hhm_user_points_accounts_pkey" PRIMARY KEY (subject),
   CONSTRAINT "hhm_user_points_accounts_totals" CHECK (((lifetime_earned >= 0) AND (lifetime_redeemed >= 0))),
   CONSTRAINT "hhm_user_points_accounts_version" CHECK ((version >= 0))

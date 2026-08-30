@@ -34,6 +34,8 @@ pub struct Model {
     pub age_and_identity_attestation: bool,
     pub privacy_notice_version: String,
     pub status: String,
+    pub status_version: i64,
+    pub last_admin_operation_id: Option<Uuid>,
     pub mirror_status: String,
     pub submitted_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
