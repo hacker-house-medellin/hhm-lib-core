@@ -39,6 +39,15 @@ pub struct Model {
     pub mirror_status: String,
     pub submitted_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
+    pub allergy_notes: Option<String>,
+    pub noise_sensitivity: String,
+    pub light_sensitivity: String,
+    pub room_preference_notes: Option<String>,
+    pub roommate_preference: String,
+    pub preferred_room_occupancy: i16,
+    pub roommate_for_lower_cost: bool,
+    pub roommate_for_social_connection: bool,
+    pub accommodation_data_consent: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -41,7 +41,8 @@ jobs:
             schema/schema.sql
           scripts/verify-intake-schema.sh \
             postgres://postgres:postgres@127.0.0.1/hhm_schema_migration \
-            migrations/202608300001_hhm_intake.sql
+            migrations/202608300001_hhm_intake.sql \
+            migrations/202608310001_hhm_application_placement.sql
       - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: ./scripts/test.sh
       - run: ./scripts/check-secret-diff.sh "$TRUSTED_BASE_SHA"

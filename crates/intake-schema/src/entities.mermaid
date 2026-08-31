@@ -30,6 +30,15 @@ erDiagram
         varchar mirror_status
         timestamptz submitted_at
         timestamptz updated_at
+        varchar allergy_notes
+        varchar noise_sensitivity
+        varchar light_sensitivity
+        varchar room_preference_notes
+        varchar roommate_preference
+        smallint preferred_room_occupancy
+        bool roommate_for_lower_cost
+        bool roommate_for_social_connection
+        bool accommodation_data_consent
     }
     hhm_intake_uploads {
         uuid id PK

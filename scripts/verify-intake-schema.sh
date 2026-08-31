@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-database_url=${1:?usage: scripts/verify-intake-schema.sh <database-url> [schema-or-migration-file]}
+database_url=${1:?usage: scripts/verify-intake-schema.sh <database-url> [schema-or-migration-file ...]}
 repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-ddl_file=${2:-$repo_dir/schema/schema.sql}
+shift
+if [[ $# -eq 0 ]]; then
+  set -- "$repo_dir/schema/schema.sql"
+fi
 
-psql "$database_url" -X --set ON_ERROR_STOP=1 --file "$ddl_file" >/dev/null
+for ddl_file in "$@"; do
+  psql "$database_url" -X --set ON_ERROR_STOP=1 --file "$ddl_file" >/dev/null
+done
 
 psql "$database_url" -X --set ON_ERROR_STOP=1 <<'SQL'
 BEGIN;
@@ -75,6 +80,46 @@ BEGIN
   END IF;
 END
 $verify_application_fence$;
+
+DO $verify_application_placement$
+DECLARE
+  placement_columns integer;
+  placement_constraints integer;
+BEGIN
+  SELECT count(*)
+  INTO placement_columns
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'hhm_applications'
+    AND column_name IN (
+      'allergy_notes',
+      'noise_sensitivity',
+      'light_sensitivity',
+      'room_preference_notes',
+      'roommate_preference',
+      'preferred_room_occupancy',
+      'roommate_for_lower_cost',
+      'roommate_for_social_connection',
+      'accommodation_data_consent'
+    );
+
+  SELECT count(*)
+  INTO placement_constraints
+  FROM pg_constraint
+  WHERE conrelid = 'public.hhm_applications'::regclass
+    AND conname IN (
+      'hhm_applications_noise_sensitivity',
+      'hhm_applications_light_sensitivity',
+      'hhm_applications_roommate_preference',
+      'hhm_applications_room_occupancy',
+      'hhm_applications_accommodation_consent'
+    );
+
+  IF placement_columns <> 9 OR placement_constraints <> 5 THEN
+    RAISE EXCEPTION 'application placement columns or constraints are missing';
+  END IF;
+END
+$verify_application_placement$;
 
 DO $verify_overdraw$
 BEGIN
