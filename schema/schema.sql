@@ -126,6 +126,15 @@ CREATE TABLE hhm_applications (
   preferred_start_month date NOT NULL,
   community_contribution varchar(4000) NOT NULL,
   accessibility_or_accommodation_notes varchar(4000),
+  allergy_notes varchar(2000),
+  noise_sensitivity varchar(32) NOT NULL,
+  light_sensitivity varchar(32) NOT NULL,
+  room_preference_notes varchar(2000),
+  roommate_preference varchar(32) NOT NULL,
+  preferred_room_occupancy smallint NOT NULL,
+  roommate_for_lower_cost boolean NOT NULL,
+  roommate_for_social_connection boolean NOT NULL,
+  accommodation_data_consent boolean NOT NULL,
   resume_upload_id uuid NOT NULL REFERENCES hhm_intake_uploads(id) ON DELETE RESTRICT,
   photo_id_upload_id uuid NOT NULL REFERENCES hhm_intake_uploads(id) ON DELETE RESTRICT,
   age_and_identity_attestation boolean NOT NULL,
@@ -153,6 +162,28 @@ CREATE TABLE hhm_applications (
   CONSTRAINT hhm_applications_stay CHECK (
     stay_preference = 'three_months' OR stay_preference = 'six_months'
   ),
+  CONSTRAINT hhm_applications_noise_sensitivity CHECK (
+    noise_sensitivity = 'none'
+    OR noise_sensitivity = 'low'
+    OR noise_sensitivity = 'moderate'
+    OR noise_sensitivity = 'high'
+    OR noise_sensitivity = 'prefer_not_to_say'
+  ),
+  CONSTRAINT hhm_applications_light_sensitivity CHECK (
+    light_sensitivity = 'none'
+    OR light_sensitivity = 'low'
+    OR light_sensitivity = 'moderate'
+    OR light_sensitivity = 'high'
+    OR light_sensitivity = 'prefer_not_to_say'
+  ),
+  CONSTRAINT hhm_applications_roommate_preference CHECK (
+    roommate_preference = 'private_room'
+    OR roommate_preference = 'open_to_roommates'
+    OR roommate_preference = 'prefer_roommates'
+    OR roommate_preference = 'flexible'
+  ),
+  CONSTRAINT hhm_applications_room_occupancy CHECK (preferred_room_occupancy BETWEEN 1 AND 3),
+  CONSTRAINT hhm_applications_accommodation_consent CHECK (accommodation_data_consent),
   CONSTRAINT hhm_applications_attestation CHECK (age_and_identity_attestation),
   CONSTRAINT hhm_applications_uploads_distinct CHECK (resume_upload_id <> photo_id_upload_id),
   CONSTRAINT hhm_applications_status_version CHECK (status_version >= 0),
