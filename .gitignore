@@ -15,3 +15,7 @@ tmp
 temp
 tmp/worktrees
 temp/worktrees
+
+# Canonical scratch directories, including TJSV evidence.
+tmp/
+temp/
