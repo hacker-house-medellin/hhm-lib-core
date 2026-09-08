@@ -25,3 +25,9 @@ accepted action writes its durable audit outbox event in the same transaction.
 Workers claim events with expiring, token-fenced leases. A late completion cannot
 overwrite a reclaimed action, and retryable failures use bounded backoff before a
 terminal dead-letter state.
+
+## Formal state-machine gate
+
+`../formal/admin-action-queue/` contains an executable TLA+ abstraction of the request/outbox lifecycle. Hosted TLC checks request/outbox coherence, attempt bounds, lease ownership, monotonic fencing, stale-completion non-mutation, retry escalation, and terminal closure. The model is bound to the exact Git blobs of this Rust module and its declarative PostgreSQL constraint file, so implementation drift fails closed until the model is reviewed and advanced.
+
+The finite model complements the existing Rust/PostgreSQL integration tests; it does not replace database isolation, authorization, worker identity, or deployed-service acceptance.
