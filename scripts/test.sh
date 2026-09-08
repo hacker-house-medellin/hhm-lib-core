@@ -5,6 +5,7 @@ cd "$root"
 node --test tests/*.test.mjs
 node --check src/index.mjs
 python3 -m json.tool schemas/event-envelope.schema.json >/dev/null
+python3 scripts/verify-platform-vendor.py
 if command -v cargo >/dev/null 2>&1; then
   cargo fmt --all -- --check
   cargo clippy --workspace --all-targets --all-features --locked -- -D warnings

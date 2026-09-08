@@ -35,5 +35,15 @@ read-only transaction and include tenant, user, service, and record predicates.
 
 `hhm-interfaces` remains the source of truth for reservation wire and domain
 types. The Cargo dependency is pinned to immutable reviewed revision
-`4079822762f23d014fe0dd8d138b823c0c0758e5`; database-only scope columns stay
+`b66988b856946ff028085323ff502796b97e0012`; database-only scope columns stay
 inside this library rather than leaking into the public interface contract.
+
+The operational platform lane is separately vendored from that same immutable
+revision. Generated SQL, Rust, SeaORM, and Diesel files remain byte-identical;
+the authored PostgreSQL hardening migration is additive and independently
+reviewed. `hhm-platform-schema` compiles all three Rust projections while
+`scripts/verify-platform-vendor.py` checks exact source bytes and provenance.
+
+The generated operational reservation table is `hhm_space_reservations`.
+`hhm_reservations` remains the incompatible legacy persistence surface used by
+`ReservationStore`; neither table aliases, migrates, or overwrites the other.
