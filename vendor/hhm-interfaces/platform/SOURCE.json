@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/hacker-house-medellin/hhm-interfaces",
+  "revision": "b66988b856946ff028085323ff502796b97e0012",
+  "release_state": "production",
+  "artifacts": [
+    {
+      "upstream_path": "generated/platform/sql/schema.sql",
+      "vendored_path": "vendor/hhm-interfaces/platform/sql/schema.sql",
+      "sha256": "c2c9a902949cb37246e15db32f4faa42c325dc46675c53a39161dd9ce8751c99",
+      "bytes": 24393
+    },
+    {
+      "upstream_path": "generated/platform/rust/types.rs",
+      "vendored_path": "vendor/hhm-interfaces/platform/rust/types.rs",
+      "sha256": "3c0c6da2a6dfa372eae5b54134812d4b3ba8823de187859647ae619ed75dbca4",
+      "bytes": 19029
+    },
+    {
+      "upstream_path": "generated/platform/seaorm/entities.rs",
+      "vendored_path": "vendor/hhm-interfaces/platform/seaorm/entities.rs",
+      "sha256": "4839606b98e649abf1ca711b27d017124353a17eb3bc304f7c96114ac8c35899",
+      "bytes": 43229
+    },
+    {
+      "upstream_path": "generated/platform/diesel/schema.rs",
+      "vendored_path": "vendor/hhm-interfaces/platform/diesel/schema.rs",
+      "sha256": "8213cd9fc0e908aa2cfb91973b73e6ad9b8d6aa6a422d99ccbf2fe07ae5eda63",
+      "bytes": 45503
+    }
+  ],
+  "migration_copy": "migrations/202609080001_hhm_platform_generated.sql"
+}
