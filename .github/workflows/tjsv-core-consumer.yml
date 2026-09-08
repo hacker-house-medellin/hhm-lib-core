@@ -36,7 +36,7 @@ jobs:
         with:
           node-version: 22.16.0
       - name: Compile independent peers and execute recorded resident cases
-        uses: ORESoftware/typespec-json-schema-validator@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+        uses: ORESoftware/typespec-json-schema-validator@158677d3bb94b5a301b592244fc51981a13a8df7
         with:
           typespec: tmp/tjsv-interfaces/contracts/resident-operations/v1/main.tsp
           schema: tmp/tjsv-interfaces/contracts/resident-operations/v1/authored.schema.json
@@ -47,7 +47,7 @@ jobs:
           output_dir: tmp/tjsv-evidence/generated
           max_probes: "64"
       - name: Require complete admission and seven evidence rejection regressions
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@158677d3bb94b5a301b592244fc51981a13a8df7
         with:
           contract_ir: tmp/tjsv-evidence/contract-ir.json
           report: tmp/tjsv-evidence/report.json
