@@ -1,0 +1,3 @@
+# source_path	git_blob_sha	formal_scope
+admin-orm/src/lib.rs	abab618f437e62f535edf1b7397c0428a90a368e	claim,expiry,reclaim,completion,retry,fencing
+admin-orm/schema/admin-db-contract.sql	2495b8818d29d370975aa5735cbaf4013173ec2e	request/outbox states,attempt bounds,lease coherence
