@@ -1,0 +1,24 @@
+name: TJSV resident contract consumer
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  resident-contract-admission:
+    uses: hacker-house-medellin/hhm-interfaces/.github/workflows/reusable-resident-contract-admission.yml@ec2ff82ad836ad2fc4cc1da1d0d86b1aafc8e69c
+    with:
+      consumer_repository: ${{ github.repository }}
+      consumer_role: hhm-domain-and-admin-queue
+
+# DEN-1950 / DEN-3828. The authority-owned workflow pins independent TypeSpec
+# and authored Draft 2020-12 JSON Schema sources plus immutable
+# ORESoftware/typespec-json-schema-validator, reproduces fresh Contract IR, and
+# enforces the current canonical consumer-admission refusal suite. Runtime
+# lifecycle, money, legal, PostgreSQL, and admin-queue behavior remain covered
+# separately by native tests and executable formal-methods gates.
