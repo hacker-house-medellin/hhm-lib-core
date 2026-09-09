@@ -4,72 +4,16 @@ on:
   push:
     branches: [main, dev]
   workflow_dispatch:
-  workflow_call:
 permissions:
   contents: read
-concurrency:
-  group: tjsv-core-consumer-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
-  admission:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          persist-credentials: false
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: hacker-house-medellin/hhm-interfaces
-          ref: 44a06ec47e04a9994241e0f0fb2f560f3b1ac247
-          path: tmp/tjsv-interfaces
-          persist-credentials: false
-      - name: Verify exact consumer and authority revisions
-        env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          test "$(git -C tmp/tjsv-interfaces rev-parse HEAD)" = 44a06ec47e04a9994241e0f0fb2f560f3b1ac247
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: 22.16.0
-      - name: Compile independent peers and execute recorded resident cases
-        uses: ORESoftware/typespec-json-schema-validator@158677d3bb94b5a301b592244fc51981a13a8df7
-        with:
-          typespec: tmp/tjsv-interfaces/contracts/resident-operations/v1/main.tsp
-          schema: tmp/tjsv-interfaces/contracts/resident-operations/v1/authored.schema.json
-          instances: tmp/tjsv-interfaces/contracts/resident-operations/v1/instances
-          report: tmp/tjsv-evidence/report.json
-          sarif: tmp/tjsv-evidence/report.sarif
-          contract_ir: tmp/tjsv-evidence/contract-ir.json
-          output_dir: tmp/tjsv-evidence/generated
-          max_probes: "64"
-      - name: Require complete admission and seven evidence rejection regressions
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@158677d3bb94b5a301b592244fc51981a13a8df7
-        with:
-          contract_ir: tmp/tjsv-evidence/contract-ir.json
-          report: tmp/tjsv-evidence/report.json
-          typespec: tmp/tjsv-interfaces/contracts/resident-operations/v1/main.tsp
-          schema: tmp/tjsv-interfaces/contracts/resident-operations/v1/authored.schema.json
-          generated_schema: tmp/tjsv-evidence/generated/typespec.generated.schema.json
-          expected_declarations: '["HHaus.ResidentOperations.V1.ActorRole","HHaus.ResidentOperations.V1.GuestVisitStatus","HHaus.ResidentOperations.V1.ResourceKind","HHaus.ResidentOperations.V1.ReservationStatus","HHaus.ResidentOperations.V1.MealPlanStatus","HHaus.ResidentOperations.V1.PollStatus","HHaus.ResidentOperations.V1.VoteVisibility","HHaus.ResidentOperations.V1.InvoiceStatus","HHaus.ResidentOperations.V1.PaymentStatus","HHaus.ResidentOperations.V1.AgreementAcceptanceStatus","HHaus.ResidentOperations.V1.SyncStore","HHaus.ResidentOperations.V1.SyncStatus","HHaus.ResidentOperations.V1.AssignmentStatus","HHaus.ResidentOperations.V1.ChatGroupKind","HHaus.ResidentOperations.V1.AccessGrantStatus","HHaus.ResidentOperations.V1.GuestVisit","HHaus.ResidentOperations.V1.ResourceReservation","HHaus.ResidentOperations.V1.MealPlan","HHaus.ResidentOperations.V1.PollOption","HHaus.ResidentOperations.V1.CommunityPoll","HHaus.ResidentOperations.V1.PollVote","HHaus.ResidentOperations.V1.RentInvoice","HHaus.ResidentOperations.V1.PaymentRecord","HHaus.ResidentOperations.V1.AgreementAcceptance","HHaus.ResidentOperations.V1.OnboardingCheckpoint","HHaus.ResidentOperations.V1.PersistenceReceipt","HHaus.ResidentOperations.V1.AssignmentRequest","HHaus.ResidentOperations.V1.AssignmentDecision","HHaus.ResidentOperations.V1.AssignmentResult","HHaus.ResidentOperations.V1.ChatGroupReference","HHaus.ResidentOperations.V1.DeveloperAccessGrant","HHaus.ResidentOperations.V1.ResidentOperationsEvent"]'
-          verification: tmp/tjsv-evidence/verification.json
-      - name: Preserve the canonical peer sources and recorded expectations
-        run: |
-          set -euo pipefail
-          git -C tmp/tjsv-interfaces diff --exit-code HEAD -- contracts/resident-operations/v1/
-          test -z "$(git -C tmp/tjsv-interfaces ls-files --others --exclude-standard -- contracts/resident-operations/v1/)"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        if: ${{ always() }}
-        with:
-          name: tjsv-resident-consumer-${{ github.event.pull_request.head.sha || github.sha }}
-          path: tmp/tjsv-evidence/
-          if-no-files-found: error
-          retention-days: 14
-# DEN-3828 / upstream issue #20. The existing 32 resident data declarations
-# remain owned by hhm-interfaces. No copied authority or runtime dependency.
-# This source-admission job does not certify the caller's runtime, legal,
-# money, lifecycle, SQL, or ORM behavior. Existing native gates remain required.
-# Sibling repositories call this workflow at an immutable reviewed commit.
+  resident-contract-admission:
+    uses: hacker-house-medellin/hhm-interfaces/.github/workflows/reusable-resident-contract-admission.yml@7116e3a3cb239b5e07ba7501c4c7ef6736fdb57f
+    with:
+      consumer_repository: ${{ github.repository }}
+      consumer_role: hhm-domain-and-admin-queue
+# DEN-1950 / DEN-3828. The authority-owned workflow pins the independent
+# TypeSpec and authored JSON Schema sources and ORESoftware/typespec-json-schema-validator,
+# reproduces fresh Contract IR, and proves current-input admission and seven refusals.
+# Runtime lifecycle, money, legal, PostgreSQL, and admin-queue behavior remains
+# covered separately by native tests and the executable formal-methods gates.
