@@ -1,0 +1,52 @@
+{
+  "maps": [
+    {
+      "path": "route-maps/api.route-map.json",
+      "sources": [
+        "../hhm-api-server.rs/src",
+        "../hhm-api/src"
+      ]
+    },
+    {
+      "path": "route-maps/web.route-map.json",
+      "sources": [
+        "../hhm-web-server.rs/src"
+      ]
+    },
+    {
+      "path": "route-maps/mash.route-map.json",
+      "sources": [
+        "../hhm-mash-web/src"
+      ]
+    },
+    {
+      "path": "route-maps/leptos.route-map.json",
+      "sources": [
+        "../hhm-leptos-web/src"
+      ]
+    },
+    {
+      "path": "route-maps/dioxus.route-map.json",
+      "sources": [
+        "../hhm-dioxus-web/src"
+      ]
+    },
+    {
+      "path": "route-maps/sync.route-map.json",
+      "sources": [
+        "../hhm-sync/src"
+      ]
+    }
+  ],
+  "identical_to": [
+    "../hhm-interfaces/route-maps/api.route-map.json",
+    "../hhm-interfaces/route-maps/web.route-map.json",
+    "../hhm-interfaces/route-maps/mash.route-map.json",
+    "../hhm-interfaces/route-maps/leptos.route-map.json",
+    "../hhm-interfaces/route-maps/dioxus.route-map.json",
+    "../hhm-interfaces/route-maps/sync.route-map.json"
+  ],
+  "out": "generated",
+  "skip_drift": true,
+  "allow_docs_merge": true
+}

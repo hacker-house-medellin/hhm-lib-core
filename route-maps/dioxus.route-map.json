@@ -1,0 +1,37 @@
+{
+  "schema_version": "2.0.0",
+  "service": "hhm-dioxus-web",
+  "title": "Hacker House Medellín (Dioxus SSR)",
+  "version": "0.1.0",
+  "description": "The Dioxus server-rendered front end. Same three-route shape as hhm-leptos-web, rendered by dioxus_ssr and served on its own port.",
+  "types": {
+    "Health": {
+      "kind": "record",
+      "doc": "Built inline with serde_json::json!, so the field names below are the whole contract.",
+      "fields": {
+        "status": "String",
+        "ui": { "type": "String", "doc": "Constant `dioxus-ssr` -- identifies which front end answered." }
+      }
+    }
+  },
+  "map": {
+    "home": {
+      "path": "/",
+      "methods": ["GET"],
+      "summary": "The server-rendered dashboard shell.",
+      "client": false
+    },
+    "healthz": {
+      "path": "/healthz",
+      "methods": ["GET"],
+      "summary": "Liveness, plus which front end answered.",
+      "response": "Health"
+    },
+    "realtime": {
+      "path": "/ws",
+      "methods": ["GET"],
+      "summary": "Websocket upgrade. The server greets the client with a plain-text banner and echoes `ack:<text>` for every text frame; no JSON is exchanged.",
+      "client": false
+    }
+  }
+}
