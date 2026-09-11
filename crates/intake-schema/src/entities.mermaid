@@ -1,0 +1,126 @@
+erDiagram
+    hhm_applications {
+        uuid id PK
+        varchar idempotency_key UK
+        char payload_sha256
+        uuid pre_interest_id FK
+        varchar applicant_subject
+        varchar email
+        varchar linkedin_url
+        varchar legal_name
+        date date_of_birth
+        varchar nationality
+        varchar phone
+        varchar current_city
+        varchar github_url
+        varchar portfolio_url
+        varchar entrepreneurship_idea
+        varchar project_stage
+        varchar stay_preference
+        date preferred_start_month
+        varchar community_contribution
+        varchar accessibility_or_accommodation_notes
+        uuid resume_upload_id FK
+        uuid photo_id_upload_id FK
+        bool age_and_identity_attestation
+        varchar privacy_notice_version
+        varchar status
+        bigint status_version
+        uuid last_admin_operation_id
+        varchar mirror_status
+        timestamptz submitted_at
+        timestamptz updated_at
+        varchar allergy_notes
+        varchar noise_sensitivity
+        varchar light_sensitivity
+        varchar room_preference_notes
+        varchar roommate_preference
+        smallint preferred_room_occupancy
+        bool roommate_for_lower_cost
+        bool roommate_for_social_connection
+        bool accommodation_data_consent
+    }
+    hhm_intake_uploads {
+        uuid id PK
+        varchar idempotency_key UK
+        char payload_sha256
+        varchar applicant_subject
+        varchar kind
+        varchar object_key UK
+        char content_sha256
+        varchar content_type
+        bigint size_bytes
+        varchar status
+        timestamptz expires_at
+        timestamptz uploaded_at
+        timestamptz verified_at
+        timestamptz deleted_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    hhm_pre_interests {
+        uuid id PK
+        varchar idempotency_key UK
+        char payload_sha256
+        varchar applicant_subject
+        varchar email
+        varchar linkedin_url
+        varchar entrepreneurship_idea
+        varchar stay_preference
+        varchar privacy_notice_version
+        varchar source_host
+        varchar mirror_status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    hhm_referrals {
+        uuid id PK
+        varchar idempotency_key UK
+        char payload_sha256
+        varchar referrer_subject
+        varchar referee_name
+        varchar referee_email
+        varchar referee_linkedin_url
+        varchar relationship
+        varchar rationale
+        varchar stay_preference
+        bool nominee_consent_confirmed
+        varchar status
+        varchar mirror_status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    hhm_submission_outbox {
+        uuid id PK
+        varchar submission_kind UK
+        uuid submission_id UK
+        char payload_sha256
+        varchar mirror_status
+        int attempts
+        timestamptz next_attempt_at
+        varchar last_error_code
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    hhm_user_points_accounts {
+        varchar subject PK
+        uuid id UK
+        bigint balance
+        bigint lifetime_earned
+        bigint lifetime_redeemed
+        bigint version
+        timestamptz updated_at
+    }
+    hhm_user_points_ledger {
+        uuid id PK
+        varchar idempotency_key UK
+        varchar subject
+        bigint delta
+        varchar reason_code
+        uuid source_submission_id
+        varchar actor_subject
+        timestamptz created_at
+    }
+    hhm_applications }o--|| hhm_intake_uploads : "photo_id_upload_id"
+    hhm_applications }o--|| hhm_intake_uploads : "resume_upload_id"
+    hhm_applications }o--|| hhm_pre_interests : "pre_interest_id"

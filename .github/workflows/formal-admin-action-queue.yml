@@ -1,0 +1,46 @@
+name: Formal admin action queue
+
+on:
+  pull_request:
+    paths:
+      - "admin-orm/**"
+      - "formal/admin-action-queue/**"
+      - "scripts/formal-admin-action-check.sh"
+      - ".github/workflows/formal-admin-action-queue.yml"
+  push:
+    branches: [main]
+    paths:
+      - "admin-orm/**"
+      - "formal/admin-action-queue/**"
+      - "scripts/formal-admin-action-check.sh"
+      - ".github/workflows/formal-admin-action-queue.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  model-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          show-progress: false
+          fetch-depth: 1
+      - name: Install Java for TLA+
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Check lease, retry, fencing, and terminal-state invariants
+        run: bash scripts/formal-admin-action-check.sh
+      - name: Retain sanitized formal evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: hhm-admin-action-formal-${{ github.run_id }}
+          path: target/formal-admin-action/
+          if-no-files-found: error
+          retention-days: 90

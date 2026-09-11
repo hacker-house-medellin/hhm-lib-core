@@ -265,7 +265,7 @@ impl<'database> ReservationStore<'database> {
             .await
             .map_err(PersistenceError::from)?;
         if let Err(error) = transaction
-            .execute(Statement::from_string(
+            .execute_raw(Statement::from_string(
                 DbBackend::Postgres,
                 "SET TRANSACTION READ ONLY",
             ))
