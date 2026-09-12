@@ -5,11 +5,6 @@ edition.workspace = true
 license.workspace = true
 description = "Tenant-, user-, and service-scoped SeaORM persistence for Hacker House Medellín"
 
-[features]
-default = ["read-only"]
-read-only = []
-read-write = ["read-only"]
-
 [dependencies]
 chrono = "0.4"
 hhm-interfaces = { git = "https://github.com/hacker-house-medellin/hhm-interfaces", rev = "4079822762f23d014fe0dd8d138b823c0c0758e5" }
