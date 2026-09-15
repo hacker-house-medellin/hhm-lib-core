@@ -11,44 +11,56 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: workspace/hhm-lib-core
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-interfaces
-          path: ../hhm-interfaces
-      - uses: actions/checkout@v4
+          path: workspace/hhm-interfaces
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-api-server.rs
-          path: ../hhm-api-server.rs
-      - uses: actions/checkout@v4
+          path: workspace/hhm-api-server.rs
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-api
-          path: ../hhm-api
-      - uses: actions/checkout@v4
+          path: workspace/hhm-api
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-web-server.rs
-          path: ../hhm-web-server.rs
-      - uses: actions/checkout@v4
+          path: workspace/hhm-web-server.rs
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-mash-web
-          path: ../hhm-mash-web
-      - uses: actions/checkout@v4
+          path: workspace/hhm-mash-web
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-leptos-web
-          path: ../hhm-leptos-web
-      - uses: actions/checkout@v4
+          path: workspace/hhm-leptos-web
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-dioxus-web
-          path: ../hhm-dioxus-web
-      - uses: actions/checkout@v4
+          path: workspace/hhm-dioxus-web
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-sync
-          path: ../hhm-sync
-      - uses: actions/setup-python@v5
+          path: workspace/hhm-sync
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
       # No pip install: the checker and generator are standard library only, so
       # CI and a developer laptop cannot reach different verdicts.
       - name: Validate the route maps and the generated clients
-        run: python3 scripts/check-route-sync.py --root .
+        run: python3 workspace/hhm-lib-core/scripts/check-route-sync.py --root workspace/hhm-lib-core

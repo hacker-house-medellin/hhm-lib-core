@@ -18,6 +18,7 @@ dir = ".vendor/.zed"
 # 4079822762f23d014fe0dd8d138b823c0c0758e5. Keep that edge solely under
 # Cargo.lock authority until the matching Zed artifact is published and the
 # resolver can record it here and in .zpkg.lock together.
+"oresoftware/next-loggers" = "^0.1.0"
 
 [publish]
 include_readme = true
