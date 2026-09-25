@@ -16,38 +16,56 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: hacker-house-medellin/hhm-interfaces
-          path: ../hhm-interfaces
+          path: deps/hhm-interfaces
       - uses: actions/checkout@v4
         with:
           repository: hacker-house-medellin/hhm-api-server.rs
-          path: ../hhm-api-server.rs
+          path: deps/hhm-api-server.rs
       - uses: actions/checkout@v4
         with:
           repository: hacker-house-medellin/hhm-api
-          path: ../hhm-api
+          path: deps/hhm-api
       - uses: actions/checkout@v4
         with:
           repository: hacker-house-medellin/hhm-web-server.rs
-          path: ../hhm-web-server.rs
+          path: deps/hhm-web-server.rs
       - uses: actions/checkout@v4
         with:
           repository: hacker-house-medellin/hhm-mash-web
-          path: ../hhm-mash-web
+          path: deps/hhm-mash-web
       - uses: actions/checkout@v4
         with:
           repository: hacker-house-medellin/hhm-leptos-web
-          path: ../hhm-leptos-web
+          path: deps/hhm-leptos-web
       - uses: actions/checkout@v4
         with:
           repository: hacker-house-medellin/hhm-dioxus-web
-          path: ../hhm-dioxus-web
+          path: deps/hhm-dioxus-web
       - uses: actions/checkout@v4
         with:
           repository: hacker-house-medellin/hhm-sync
-          path: ../hhm-sync
+          path: deps/hhm-sync
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Remap local sibling paths to CI workspace dependencies
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("ridl.json")
+          data = json.loads(path.read_text())
+          def remap(value):
+              if isinstance(value, str):
+                  return value.replace("../hhm-", "deps/hhm-")
+              if isinstance(value, list):
+                  return [remap(item) for item in value]
+              if isinstance(value, dict):
+                  return {key: remap(item) for key, item in value.items()}
+              return value
+          path.write_text(json.dumps(remap(data), indent=2) + "\n")
+          PY
       # No pip install: the checker and generator are standard library only, so
       # CI and a developer laptop cannot reach different verdicts.
       - name: Validate the route maps and the generated clients
