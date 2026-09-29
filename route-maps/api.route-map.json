@@ -186,7 +186,10 @@
         "POST"
       ],
       "summary": "Complete an intake upload by upload id.",
-      "client": false
+      "client": false,
+      "path_params": {
+        "upload_id": "String"
+      }
     },
     "create_application": {
       "path": "/v1/applications",
@@ -210,7 +213,10 @@
         "POST"
       ],
       "summary": "Issue a short-lived visitor QR action payload.",
-      "client": false
+      "client": false,
+      "path_params": {
+        "action": "String"
+      }
     },
     "visitor_check_in": {
       "path": "/v1/visits/check-in",
