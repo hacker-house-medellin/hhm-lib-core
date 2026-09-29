@@ -12,7 +12,13 @@
     },
     "ReservationStatus": {
       "kind": "enum",
-      "variants": ["pending", "confirmed", "checked_in", "checked_out", "cancelled"],
+      "variants": [
+        "pending",
+        "confirmed",
+        "checked_in",
+        "checked_out",
+        "cancelled"
+      ],
       "doc": "RESERVATION_STATUSES in main.rs. The handler trims and lowercases the incoming string before checking it against this set, so these are exactly the values that survive validation and the only ones a stored record can carry."
     },
     "Reservation": {
@@ -35,20 +41,38 @@
       "kind": "record",
       "doc": "Request body for creating a stay. Every field is required: the Rust struct carries no `#[serde(default)]` and no `Option<..>`, so a missing key fails in the `Json<..>` extractor before the handler runs. `notes` is required but may be the empty string.",
       "fields": {
-        "member_name": { "type": "String", "doc": "Trimmed; must be non-empty and at most 200 characters." },
-        "room_type": { "type": "String", "doc": "Trimmed; must be non-empty and at most 100 characters." },
+        "member_name": {
+          "type": "String",
+          "doc": "Trimmed; must be non-empty and at most 200 characters."
+        },
+        "room_type": {
+          "type": "String",
+          "doc": "Trimmed; must be non-empty and at most 100 characters."
+        },
         "check_in": "DateTime",
-        "check_out": { "type": "DateTime", "doc": "Must be strictly after `check_in`, and no more than 366 days later." },
-        "workspace_plan": { "type": "String", "doc": "Trimmed; must be non-empty and at most 100 characters." },
+        "check_out": {
+          "type": "DateTime",
+          "doc": "Must be strictly after `check_in`, and no more than 366 days later."
+        },
+        "workspace_plan": {
+          "type": "String",
+          "doc": "Trimmed; must be non-empty and at most 100 characters."
+        },
         "status": "ReservationStatus",
-        "notes": { "type": "String", "doc": "Trimmed; at most 4000 characters. May be empty." }
+        "notes": {
+          "type": "String",
+          "doc": "Trimmed; at most 4000 characters. May be empty."
+        }
       }
     },
     "ReservationEvent": {
       "kind": "record",
       "doc": "The frame broadcast on the websocket after a create. It is not an HTTP response body, so no route declares it; it is declared here because it is part of the wire contract.",
       "fields": {
-        "event": { "type": "String", "doc": "Always `reservation.created` today -- the only event the server emits." },
+        "event": {
+          "type": "String",
+          "doc": "Always `reservation.created` today -- the only event the server emits."
+        },
         "reservation": "Reservation"
       }
     },
@@ -64,30 +88,45 @@
     "ApiError": {
       "kind": "record",
       "doc": "The error envelope every failing handler returns.",
-      "fields": { "code": "String", "message": "String" }
+      "fields": {
+        "code": "String",
+        "message": "String"
+      }
     }
   },
   "map": {
     "healthz": {
       "path": "/healthz",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Liveness plus which optional backends are configured.",
       "response": "Health"
     },
     "list_reservations": {
       "path": "/v1/reservations",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Every reservation, oldest `created_at` first.",
-      "response": { "kind": "list", "item": "Reservation" }
+      "response": {
+        "kind": "list",
+        "item": "Reservation"
+      }
     },
     "create_reservation": {
       "path": "/v1/reservations",
-      "methods": ["POST"],
+      "methods": [
+        "POST"
+      ],
       "summary": "Create a stay. Responds 201 with the stored record.",
       "doc": "Queued through opto-sync: this is the org's one durable write, and hhm-sync is built to reconcile exactly these records (it merges arrays by `id` with last-writer-wins on `updated_at`). The queue mints its own record id because the request body carries none -- the server mints the authoritative `Reservation.id` when it accepts the call.",
       "request": "CreateReservation",
       "response": "Reservation",
-      "errors": { "422": "ApiError", "500": "ApiError" },
+      "errors": {
+        "422": "ApiError",
+        "500": "ApiError"
+      },
       "delivery": "opto_sync_queued",
       "opto_sync": {
         "table": "hhm_reservations",
@@ -97,16 +136,96 @@
     },
     "get_reservation": {
       "path": "/v1/reservations/{id}",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "One reservation by id.",
-      "path_params": { "id": "ReservationId" },
+      "path_params": {
+        "id": "ReservationId"
+      },
       "response": "Reservation",
-      "errors": { "404": "ApiError" }
+      "errors": {
+        "404": "ApiError"
+      }
     },
     "reservation_events": {
       "path": "/v1/ws",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Websocket upgrade. Frames are `ReservationEvent` JSON; the server answers ping with pong and sends nothing else.",
+      "client": false
+    },
+    "readyz": {
+      "path": "/readyz",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Dependency-aware readiness check for the hardened API server.",
+      "client": false
+    },
+    "create_pre_interest": {
+      "path": "/v1/pre-interests",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Create a pre-interest intake record.",
+      "client": false
+    },
+    "create_upload_intent": {
+      "path": "/v1/intake/uploads",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Create a bounded intake upload intent.",
+      "client": false
+    },
+    "complete_upload": {
+      "path": "/v1/intake/uploads/{upload_id}/complete",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Complete an intake upload by upload id.",
+      "client": false
+    },
+    "create_application": {
+      "path": "/v1/applications",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Create an application intake record.",
+      "client": false
+    },
+    "create_referral": {
+      "path": "/v1/referrals",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Create a referral intake record.",
+      "client": false
+    },
+    "issue_visitor_qr": {
+      "path": "/v1/visitor-qr/{action}",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Issue a short-lived visitor QR action payload.",
+      "client": false
+    },
+    "visitor_check_in": {
+      "path": "/v1/visits/check-in",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Record an authenticated visitor check-in.",
+      "client": false
+    },
+    "visitor_check_out": {
+      "path": "/v1/visits/check-out",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Record an authenticated visitor check-out.",
       "client": false
     }
   }
