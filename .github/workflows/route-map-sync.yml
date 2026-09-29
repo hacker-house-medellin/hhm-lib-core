@@ -10,45 +10,100 @@ permissions:
 
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - name: Check out exact candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact candidate
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Check out route-map mirror authority
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-interfaces
-          path: ../hhm-interfaces
-      - uses: actions/checkout@v4
+          ref: 76853f194feebac2c2f05f80213d2812a7af4532
+          path: .route-sync/hhm-interfaces
+          persist-credentials: false
+      - name: Check out API server source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-api-server.rs
-          path: ../hhm-api-server.rs
-      - uses: actions/checkout@v4
+          ref: 1e956ec56c00578f1b8dc6f98bfa45f66bee8f42
+          path: .route-sync/hhm-api-server.rs
+          persist-credentials: false
+      - name: Check out API twin source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-api
-          path: ../hhm-api
-      - uses: actions/checkout@v4
+          ref: 30a88d5595750921bb88e87eb768265701d84cd9
+          path: .route-sync/hhm-api
+          persist-credentials: false
+      - name: Check out web source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-web-server.rs
-          path: ../hhm-web-server.rs
-      - uses: actions/checkout@v4
+          ref: fe394b9a2675ec70e88a878b8ce486c1084b1916
+          path: .route-sync/hhm-web-server.rs
+          persist-credentials: false
+      - name: Check out Mash source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-mash-web
-          path: ../hhm-mash-web
-      - uses: actions/checkout@v4
+          ref: 16abe57f10c7315bec0c05bbc33e041987979c1d
+          path: .route-sync/hhm-mash-web
+          persist-credentials: false
+      - name: Check out Leptos source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-leptos-web
-          path: ../hhm-leptos-web
-      - uses: actions/checkout@v4
+          ref: 5466f34b830a8c872b911ea94858ab0a364849b7
+          path: .route-sync/hhm-leptos-web
+          persist-credentials: false
+      - name: Check out Dioxus source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-dioxus-web
-          path: ../hhm-dioxus-web
-      - uses: actions/checkout@v4
+          ref: 15fe88c1e5044a94efed328374fd2dd9550da470
+          path: .route-sync/hhm-dioxus-web
+          persist-credentials: false
+      - name: Check out sync source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: hacker-house-medellin/hhm-sync
-          path: ../hhm-sync
-      - uses: actions/setup-python@v5
+          ref: bc6959065480c5ef446a5e87454b8d2339aa7de0
+          path: .route-sync/hhm-sync
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
-      # No pip install: the checker and generator are standard library only, so
-      # CI and a developer laptop cannot reach different verdicts.
-      - name: Validate the route maps and the generated clients
-        run: python3 scripts/check-route-sync.py --root .
+      - name: Validate route maps against exact source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          check() {
+            local map="$1"
+            local twin="$2"
+            shift 2
+            args=(--root . --map "$map" --identical "$twin" --allow-docs-merge --skip-drift)
+            for source in "$@"; do
+              args+=(--source "$source")
+            done
+            python3 scripts/check-route-sync.py "${args[@]}"
+          }
+          check route-maps/api.route-map.json .route-sync/hhm-interfaces/route-maps/api.route-map.json \
+            .route-sync/hhm-api-server.rs/src .route-sync/hhm-api/src
+          check route-maps/web.route-map.json .route-sync/hhm-interfaces/route-maps/web.route-map.json \
+            .route-sync/hhm-web-server.rs/src
+          check route-maps/mash.route-map.json .route-sync/hhm-interfaces/route-maps/mash.route-map.json \
+            .route-sync/hhm-mash-web/src
+          check route-maps/leptos.route-map.json .route-sync/hhm-interfaces/route-maps/leptos.route-map.json \
+            .route-sync/hhm-leptos-web/src
+          check route-maps/dioxus.route-map.json .route-sync/hhm-interfaces/route-maps/dioxus.route-map.json \
+            .route-sync/hhm-dioxus-web/src
+          check route-maps/sync.route-map.json .route-sync/hhm-interfaces/route-maps/sync.route-map.json \
+            .route-sync/hhm-sync/src
