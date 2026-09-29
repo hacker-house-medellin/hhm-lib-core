@@ -50,9 +50,9 @@
           "type": "String",
           "doc": "Must match the bounded __Host-hhaus-entry-csrf cookie."
         },
-        "cf-turnstile-response": {
+        "turnstile_response": {
           "type": "String",
-          "doc": "Cloudflare Turnstile proof verified server-side."
+          "doc": "Rust field serialized from form key `cf-turnstile-response`; Cloudflare Turnstile proof verified server-side."
         }
       }
     }
