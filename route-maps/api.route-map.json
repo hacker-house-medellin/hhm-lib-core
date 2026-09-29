@@ -94,43 +94,43 @@
       }
     },
     "PreInterestCreate": {
-      "kind": "alias",
-      "target": "Json",
+      "kind": "record",
+      "fields": {},
       "doc": "Opaque admission alias for PreInterestCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "UploadIntentCreate": {
-      "kind": "alias",
-      "target": "Json",
+      "kind": "record",
+      "fields": {},
       "doc": "Opaque admission alias for UploadIntentCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "UploadCompleteCreate": {
-      "kind": "alias",
-      "target": "Json",
+      "kind": "record",
+      "fields": {},
       "doc": "Opaque admission alias for UploadCompleteCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "ApplicationCreate": {
-      "kind": "alias",
-      "target": "Json",
+      "kind": "record",
+      "fields": {},
       "doc": "Opaque admission alias for ApplicationCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "ReferralCreate": {
-      "kind": "alias",
-      "target": "Json",
+      "kind": "record",
+      "fields": {},
       "doc": "Opaque admission alias for ReferralCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "IssueQrRequest": {
-      "kind": "alias",
-      "target": "Json",
+      "kind": "record",
+      "fields": {},
       "doc": "Opaque admission alias for IssueQrRequest; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "CheckInRequest": {
-      "kind": "alias",
-      "target": "Json",
+      "kind": "record",
+      "fields": {},
       "doc": "Opaque admission alias for CheckInRequest; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "CheckOutRequest": {
-      "kind": "alias",
-      "target": "Json",
+      "kind": "record",
+      "fields": {},
       "doc": "Opaque admission alias for CheckOutRequest; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     }
   },
