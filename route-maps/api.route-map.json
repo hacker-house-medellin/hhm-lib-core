@@ -3,7 +3,7 @@
   "service": "hhm-api",
   "title": "Hacker House Medellín reservations API",
   "version": "0.1.0",
-  "description": "The JSON API implemented by hhm-api-server.rs and by its twin crate hhm-api (both register the same four routes over the same types). Keys are operations; values are typed routes. Every parameter and payload names a type in `types`, so the generated clients type-check against this file.",
+  "description": "The JSON API surface implemented across hhm-api-server.rs and hhm-api. The reservation routes remain typed client operations; newer intake and visitor routes are admitted as non-client authority entries until their dedicated domain schemas are promoted into this shared route map.",
   "types": {
     "ReservationId": {
       "kind": "scalar",
@@ -92,6 +92,46 @@
         "code": "String",
         "message": "String"
       }
+    },
+    "PreInterestCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for PreInterestCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "UploadIntentCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for UploadIntentCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "UploadCompleteCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for UploadCompleteCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "ApplicationCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for ApplicationCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "ReferralCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for ReferralCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "IssueQrRequest": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for IssueQrRequest; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "CheckInRequest": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for CheckInRequest; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "CheckOutRequest": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for CheckOutRequest; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
     }
   },
   "map": {
@@ -161,7 +201,8 @@
       "methods": [
         "GET"
       ],
-      "summary": "Dependency-aware readiness check for the hardened API server.",
+      "summary": "Readiness across configured persistence backends.",
+      "response": "Json",
       "client": false
     },
     "create_pre_interest": {
@@ -169,7 +210,9 @@
       "methods": [
         "POST"
       ],
-      "summary": "Create a pre-interest intake record.",
+      "summary": "Submit a bounded pre-interest intake record.",
+      "request": "PreInterestCreate",
+      "response": "Json",
       "client": false
     },
     "create_upload_intent": {
@@ -178,6 +221,8 @@
         "POST"
       ],
       "summary": "Create a bounded intake upload intent.",
+      "request": "UploadIntentCreate",
+      "response": "Json",
       "client": false
     },
     "complete_upload": {
@@ -185,18 +230,22 @@
       "methods": [
         "POST"
       ],
-      "summary": "Complete an intake upload by upload id.",
-      "client": false,
+      "summary": "Complete an admitted intake upload by immutable upload id.",
       "path_params": {
-        "upload_id": "String"
-      }
+        "upload_id": "Uuid"
+      },
+      "request": "UploadCompleteCreate",
+      "response": "Json",
+      "client": false
     },
     "create_application": {
       "path": "/v1/applications",
       "methods": [
         "POST"
       ],
-      "summary": "Create an application intake record.",
+      "summary": "Submit an application intake record.",
+      "request": "ApplicationCreate",
+      "response": "Json",
       "client": false
     },
     "create_referral": {
@@ -204,7 +253,9 @@
       "methods": [
         "POST"
       ],
-      "summary": "Create a referral intake record.",
+      "summary": "Submit an authenticated referral intake record.",
+      "request": "ReferralCreate",
+      "response": "Json",
       "client": false
     },
     "issue_visitor_qr": {
@@ -212,18 +263,22 @@
       "methods": [
         "POST"
       ],
-      "summary": "Issue a short-lived visitor QR action payload.",
-      "client": false,
+      "summary": "Issue an authenticated visitor QR action.",
       "path_params": {
         "action": "String"
-      }
+      },
+      "request": "IssueQrRequest",
+      "response": "Json",
+      "client": false
     },
     "visitor_check_in": {
       "path": "/v1/visits/check-in",
       "methods": [
         "POST"
       ],
-      "summary": "Record an authenticated visitor check-in.",
+      "summary": "Accept a visitor check-in receipt.",
+      "request": "CheckInRequest",
+      "response": "Json",
       "client": false
     },
     "visitor_check_out": {
@@ -231,7 +286,9 @@
       "methods": [
         "POST"
       ],
-      "summary": "Record an authenticated visitor check-out.",
+      "summary": "Accept a visitor check-out receipt.",
+      "request": "CheckOutRequest",
+      "response": "Json",
       "client": false
     }
   }
