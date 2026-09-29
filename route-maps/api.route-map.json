@@ -94,44 +94,44 @@
       }
     },
     "PreInterestCreate": {
-      "kind": "record",
-      "doc": "Opaque admission placeholder for PreInterestCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
-      "fields": {}
+      "kind": "alias",
+      "to": "Json",
+      "doc": "Opaque admission alias for PreInterestCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "UploadIntentCreate": {
-      "kind": "record",
-      "doc": "Opaque admission placeholder for UploadIntentCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
-      "fields": {}
+      "kind": "alias",
+      "to": "Json",
+      "doc": "Opaque admission alias for UploadIntentCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "UploadCompleteCreate": {
-      "kind": "record",
-      "doc": "Opaque admission placeholder for UploadCompleteCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
-      "fields": {}
+      "kind": "alias",
+      "to": "Json",
+      "doc": "Opaque admission alias for UploadCompleteCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "ApplicationCreate": {
-      "kind": "record",
-      "doc": "Opaque admission placeholder for ApplicationCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
-      "fields": {}
+      "kind": "alias",
+      "to": "Json",
+      "doc": "Opaque admission alias for ApplicationCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "ReferralCreate": {
-      "kind": "record",
-      "doc": "Opaque admission placeholder for ReferralCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
-      "fields": {}
+      "kind": "alias",
+      "to": "Json",
+      "doc": "Opaque admission alias for ReferralCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "IssueQrRequest": {
-      "kind": "record",
-      "doc": "Opaque admission placeholder for IssueQrRequest; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
-      "fields": {}
+      "kind": "alias",
+      "to": "Json",
+      "doc": "Opaque admission alias for IssueQrRequest; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "CheckInRequest": {
-      "kind": "record",
-      "doc": "Opaque admission placeholder for CheckInRequest; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
-      "fields": {}
+      "kind": "alias",
+      "to": "Json",
+      "doc": "Opaque admission alias for CheckInRequest; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     },
     "CheckOutRequest": {
-      "kind": "record",
-      "doc": "Opaque admission placeholder for CheckOutRequest; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
-      "fields": {}
+      "kind": "alias",
+      "to": "Json",
+      "doc": "Opaque admission alias for CheckOutRequest; field-level authority remains in the owning domain contract until promoted into this shared client route map."
     }
   },
   "map": {
