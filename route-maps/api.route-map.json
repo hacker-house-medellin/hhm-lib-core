@@ -95,43 +95,110 @@
     },
     "PreInterestCreate": {
       "kind": "record",
-      "fields": {},
-      "doc": "Opaque admission alias for PreInterestCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
+      "fields": {
+        "email": "String",
+        "linkedin_url": "String",
+        "entrepreneurship_idea": "String",
+        "stay_preference": "String",
+        "privacy_notice_version": "String",
+        "turnstile_token": "Json"
+      },
+      "doc": "Top-level shape mirrors hhm-interfaces::intake::PreInterestCreate. Detailed enum, optional, and validation semantics remain authoritative in hhm-interfaces."
     },
     "UploadIntentCreate": {
       "kind": "record",
-      "fields": {},
-      "doc": "Opaque admission alias for UploadIntentCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
+      "fields": {
+        "kind": "String",
+        "file_name": "String",
+        "content_type": "String",
+        "size_bytes": "Json",
+        "sha256": "String",
+        "turnstile_token": "Json"
+      },
+      "doc": "Top-level shape mirrors hhm-interfaces::intake::UploadIntentCreate; bounded size/content-type/kind semantics remain authoritative in hhm-interfaces."
     },
     "UploadCompleteCreate": {
       "kind": "record",
-      "fields": {},
-      "doc": "Opaque admission alias for UploadCompleteCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
+      "fields": {
+        "sha256": "String",
+        "turnstile_token": "Json"
+      },
+      "doc": "Top-level shape mirrors hhm-interfaces::intake::UploadCompleteCreate."
     },
     "ApplicationCreate": {
       "kind": "record",
-      "fields": {},
-      "doc": "Opaque admission alias for ApplicationCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
+      "fields": {
+        "email": "String",
+        "linkedin_url": "String",
+        "legal_name": "String",
+        "date_of_birth": "String",
+        "nationality": "String",
+        "phone": "String",
+        "current_city": "String",
+        "github_url": "Json",
+        "portfolio_url": "Json",
+        "entrepreneurship_idea": "String",
+        "project_stage": "String",
+        "stay_preference": "String",
+        "preferred_start_month": "String",
+        "community_contribution": "String",
+        "accessibility_or_accommodation_notes": "Json",
+        "allergy_notes": "Json",
+        "noise_sensitivity": "String",
+        "light_sensitivity": "String",
+        "room_preference_notes": "Json",
+        "roommate_preference": "String",
+        "preferred_room_occupancy": "Json",
+        "roommate_for_lower_cost": "Bool",
+        "roommate_for_social_connection": "Bool",
+        "accommodation_data_consent": "Bool",
+        "resume_upload_id": "Uuid",
+        "photo_id_upload_id": "Uuid",
+        "age_and_identity_attestation": "Bool",
+        "privacy_notice_version": "String",
+        "turnstile_token": "Json"
+      },
+      "doc": "Top-level shape mirrors hhm-interfaces::intake::ApplicationCreate. Field-level date, enum, optional, range, and consent validation remains authoritative in hhm-interfaces."
     },
     "ReferralCreate": {
       "kind": "record",
-      "fields": {},
-      "doc": "Opaque admission alias for ReferralCreate; field-level authority remains in the owning domain contract until promoted into this shared client route map."
+      "fields": {
+        "referee_name": "String",
+        "referee_email": "String",
+        "referee_linkedin_url": "String",
+        "relationship": "String",
+        "rationale": "String",
+        "stay_preference": "Json",
+        "nominee_consent_confirmed": "Bool"
+      },
+      "doc": "Top-level shape mirrors hhm-interfaces::intake::ReferralCreate."
     },
     "IssueQrRequest": {
       "kind": "record",
-      "fields": {},
-      "doc": "Opaque admission alias for IssueQrRequest; field-level authority remains in the owning domain contract until promoted into this shared client route map."
+      "fields": {
+        "door_id": "String"
+      },
+      "doc": "Exact strict request shape from hhm-api::visitor::IssueQrRequest."
     },
     "CheckInRequest": {
       "kind": "record",
-      "fields": {},
-      "doc": "Opaque admission alias for CheckInRequest; field-level authority remains in the owning domain contract until promoted into this shared client route map."
+      "fields": {
+        "door_id": "String",
+        "qr_token": "String",
+        "display_name": "String",
+        "privacy_notice_version": "String"
+      },
+      "doc": "Exact strict request shape from hhm-api::visitor::CheckInRequest."
     },
     "CheckOutRequest": {
       "kind": "record",
-      "fields": {},
-      "doc": "Opaque admission alias for CheckOutRequest; field-level authority remains in the owning domain contract until promoted into this shared client route map."
+      "fields": {
+        "door_id": "String",
+        "qr_token": "String",
+        "visit_id": "Uuid",
+        "checkout_receipt": "String"
+      },
+      "doc": "Exact strict request shape from hhm-api::visitor::CheckOutRequest."
     }
   },
   "map": {
