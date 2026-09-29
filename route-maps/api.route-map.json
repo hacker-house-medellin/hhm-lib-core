@@ -92,6 +92,46 @@
         "code": "String",
         "message": "String"
       }
+    },
+    "PreInterestCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for PreInterestCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "UploadIntentCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for UploadIntentCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "UploadCompleteCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for UploadCompleteCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "ApplicationCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for ApplicationCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "ReferralCreate": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for ReferralCreate; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "IssueQrRequest": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for IssueQrRequest; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "CheckInRequest": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for CheckInRequest; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
+    },
+    "CheckOutRequest": {
+      "kind": "record",
+      "doc": "Opaque admission placeholder for CheckOutRequest; the exact field-level authority remains in the owning interface/domain contract until promoted into this shared client route map.",
+      "fields": {}
     }
   },
   "map": {
@@ -171,7 +211,7 @@
         "POST"
       ],
       "summary": "Submit a bounded pre-interest intake record.",
-      "request": "Json",
+      "request": "PreInterestCreate",
       "response": "Json",
       "client": false
     },
@@ -181,7 +221,7 @@
         "POST"
       ],
       "summary": "Create a bounded intake upload intent.",
-      "request": "Json",
+      "request": "UploadIntentCreate",
       "response": "Json",
       "client": false
     },
@@ -194,7 +234,7 @@
       "path_params": {
         "upload_id": "Uuid"
       },
-      "request": "Json",
+      "request": "UploadCompleteCreate",
       "response": "Json",
       "client": false
     },
@@ -204,7 +244,7 @@
         "POST"
       ],
       "summary": "Submit an application intake record.",
-      "request": "Json",
+      "request": "ApplicationCreate",
       "response": "Json",
       "client": false
     },
@@ -214,7 +254,7 @@
         "POST"
       ],
       "summary": "Submit an authenticated referral intake record.",
-      "request": "Json",
+      "request": "ReferralCreate",
       "response": "Json",
       "client": false
     },
@@ -227,7 +267,7 @@
       "path_params": {
         "action": "String"
       },
-      "request": "Json",
+      "request": "IssueQrRequest",
       "response": "Json",
       "client": false
     },
@@ -237,7 +277,7 @@
         "POST"
       ],
       "summary": "Accept a visitor check-in receipt.",
-      "request": "Json",
+      "request": "CheckInRequest",
       "response": "Json",
       "client": false
     },
@@ -247,7 +287,7 @@
         "POST"
       ],
       "summary": "Accept a visitor check-out receipt.",
-      "request": "Json",
+      "request": "CheckOutRequest",
       "response": "Json",
       "client": false
     }
