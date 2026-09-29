@@ -8,65 +8,100 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: route-map-sync-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - name: Check out contract authority
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out interface twins
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-interfaces
-          path: deps/hhm-interfaces
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-interfaces
+          persist-credentials: false
+
+      - name: Check out API server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-api-server.rs
-          path: deps/hhm-api-server.rs
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-api-server.rs
+          persist-credentials: false
+
+      - name: Check out API
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-api
-          path: deps/hhm-api
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-api
+          persist-credentials: false
+
+      - name: Check out web server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-web-server.rs
-          path: deps/hhm-web-server.rs
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-web-server.rs
+          persist-credentials: false
+
+      - name: Check out Mash web
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-mash-web
-          path: deps/hhm-mash-web
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-mash-web
+          persist-credentials: false
+
+      - name: Check out Leptos web
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-leptos-web
-          path: deps/hhm-leptos-web
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-leptos-web
+          persist-credentials: false
+
+      - name: Check out Dioxus web
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-dioxus-web
-          path: deps/hhm-dioxus-web
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-dioxus-web
+          persist-credentials: false
+
+      - name: Check out sync service
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-sync
-          path: deps/hhm-sync
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Remap local sibling paths to CI workspace dependencies
+          path: .route-sync/hhm-sync
+          persist-credentials: false
+
+      - name: Validate route maps against live sources and interface twins
         shell: bash
         run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          path = Path("ridl.json")
-          data = json.loads(path.read_text())
-          def remap(value):
-              if isinstance(value, str):
-                  return value.replace("../hhm-", "deps/hhm-")
-              if isinstance(value, list):
-                  return [remap(item) for item in value]
-              if isinstance(value, dict):
-                  return {key: remap(item) for key, item in value.items()}
-              return value
-          path.write_text(json.dumps(remap(data), indent=2) + "\n")
-          PY
-      # No pip install: the checker and generator are standard library only, so
-      # CI and a developer laptop cannot reach different verdicts.
-      - name: Validate the route maps and the generated clients
-        run: python3 scripts/check-route-sync.py --root .
+          set -euo pipefail
+          check() {
+            local map="$1"
+            local twin="$2"
+            shift 2
+            args=(--root . --map "$map" --identical "$twin" --allow-docs-merge --skip-drift)
+            for source in "$@"; do
+              args+=(--source "$source")
+            done
+            python3 scripts/check-route-sync.py "${args[@]}"
+          }
+
+          check route-maps/api.route-map.json .route-sync/hhm-interfaces/route-maps/api.route-map.json \
+            .route-sync/hhm-api-server.rs/src .route-sync/hhm-api/src
+          check route-maps/web.route-map.json .route-sync/hhm-interfaces/route-maps/web.route-map.json \
+            .route-sync/hhm-web-server.rs/src
+          check route-maps/mash.route-map.json .route-sync/hhm-interfaces/route-maps/mash.route-map.json \
+            .route-sync/hhm-mash-web/src
+          check route-maps/leptos.route-map.json .route-sync/hhm-interfaces/route-maps/leptos.route-map.json \
+            .route-sync/hhm-leptos-web/src
+          check route-maps/dioxus.route-map.json .route-sync/hhm-interfaces/route-maps/dioxus.route-map.json \
+            .route-sync/hhm-dioxus-web/src
+          check route-maps/sync.route-map.json .route-sync/hhm-interfaces/route-maps/sync.route-map.json \
+            .route-sync/hhm-sync/src
