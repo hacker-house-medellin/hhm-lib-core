@@ -3,45 +3,126 @@
   "service": "hhm-mash-web",
   "title": "Hacker House Medellín (mash web)",
   "version": "0.1.0",
-  "description": "hhm-mash-web registers the same surface as hhm-web-server.rs, in a denser formatting style. Kept as its own map because it is its own deployable service on its own port.",
+  "description": "hhm-mash-web registers its own deployable Maud/HTMX/WebSocket surface plus an hhm.component.v1 discovery manifest and inert component fragments.",
   "types": {
     "Health": {
       "kind": "record",
       "doc": "Built inline with serde_json::json!, so the field names below are the whole contract.",
       "fields": {
         "status": "String",
-        "database": { "type": "Bool", "doc": "True when DATABASE_URL was set and the SeaORM connection succeeded at boot." },
-        "supabase": { "type": "Bool", "doc": "True when SUPABASE_URL was set." }
+        "database": {
+          "type": "Bool",
+          "doc": "True when DATABASE_URL was set and the SeaORM connection succeeded at boot."
+        },
+        "supabase": {
+          "type": "Bool",
+          "doc": "True when SUPABASE_URL was set."
+        },
+        "demo_writes_enabled": {
+          "type": "Bool",
+          "doc": "True only when unauthenticated demo writes were explicitly requested and the server is bound to a loopback host."
+        },
+        "component_contract": {
+          "type": "String",
+          "doc": "Current component contract identifier; `hhm.component.v1`."
+        },
+        "state_durable": {
+          "type": "Bool",
+          "doc": "False today: the reservation demo list is process-local memory."
+        }
       }
     },
     "NewItem": {
       "kind": "record",
       "doc": "The urlencoded body of the HTMX create form. Both fields are required: the Rust struct has no defaults, and both inputs carry the HTML `required` attribute.",
-      "fields": { "title": "String", "detail": "String" }
+      "fields": {
+        "title": "String",
+        "detail": "String"
+      }
+    },
+    "ComponentDescriptor": {
+      "kind": "record",
+      "doc": "One inert server-rendered component advertised by the component manifest.",
+      "fields": {
+        "id": "String",
+        "href": "String",
+        "media_type": "String",
+        "runtimes": {
+          "kind": "list",
+          "item": "String"
+        },
+        "executable": {
+          "type": "Bool",
+          "doc": "False for these HTML fragments; clients must not treat them as executable code."
+        }
+      }
+    },
+    "ComponentManifest": {
+      "kind": "record",
+      "doc": "Machine-readable hhm.component.v1 discovery response.",
+      "fields": {
+        "contract": "String",
+        "components": {
+          "kind": "list",
+          "item": "ComponentDescriptor"
+        }
+      }
     }
   },
   "map": {
     "home": {
       "path": "/",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Server-rendered dashboard (maud) with the HTMX create form.",
       "client": false
     },
     "healthz": {
       "path": "/healthz",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Liveness plus which optional backends are configured.",
       "response": "Health"
     },
+    "component_manifest": {
+      "path": "/v1/components",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Discover the inert HTML components this service exposes and the runtimes allowed to display them.",
+      "response": "ComponentManifest"
+    },
+    "reservations_component": {
+      "path": "/v1/components/reservations",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Server-rendered reservation cards for browser or sandboxed Flutter WebView display.",
+      "client": false
+    },
+    "leptos_capabilities_component": {
+      "path": "/v1/components/leptos-capabilities",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Inert Leptos SSR capability fragment describing the supported MASH rendering boundary.",
+      "client": false
+    },
     "list_reservations_partial": {
       "path": "/partials/reservations",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "The reservation list as an HTML fragment, swapped into #items by HTMX.",
       "client": false
     },
     "create_reservation_partial": {
       "path": "/partials/reservations",
-      "methods": ["POST"],
+      "methods": [
+        "POST"
+      ],
       "summary": "Append an item from the browser form and re-render the list fragment. Returns HTML, not JSON.",
       "request": "NewItem",
       "content_type": "form",
@@ -49,7 +130,9 @@
     },
     "reservation_events": {
       "path": "/ws",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Websocket upgrade. Frames are the plain-text string `created:<uuid>`, not JSON; the page uses them only as a hint to re-fetch the list fragment.",
       "client": false
     }

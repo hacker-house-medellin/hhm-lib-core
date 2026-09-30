@@ -3,7 +3,7 @@
   "service": "hhm-api",
   "title": "Hacker House Medellín reservations API",
   "version": "0.1.0",
-  "description": "The JSON API implemented by hhm-api-server.rs and by its twin crate hhm-api (both register the same four routes over the same types). Keys are operations; values are typed routes. Every parameter and payload names a type in `types`, so the generated clients type-check against this file.",
+  "description": "The JSON API surface implemented across hhm-api-server.rs and hhm-api. The reservation routes remain typed client operations; newer intake and visitor routes are admitted as non-client authority entries until their dedicated domain schemas are promoted into this shared route map.",
   "types": {
     "ReservationId": {
       "kind": "scalar",
@@ -12,7 +12,13 @@
     },
     "ReservationStatus": {
       "kind": "enum",
-      "variants": ["pending", "confirmed", "checked_in", "checked_out", "cancelled"],
+      "variants": [
+        "pending",
+        "confirmed",
+        "checked_in",
+        "checked_out",
+        "cancelled"
+      ],
       "doc": "RESERVATION_STATUSES in main.rs. The handler trims and lowercases the incoming string before checking it against this set, so these are exactly the values that survive validation and the only ones a stored record can carry."
     },
     "Reservation": {
@@ -35,20 +41,38 @@
       "kind": "record",
       "doc": "Request body for creating a stay. Every field is required: the Rust struct carries no `#[serde(default)]` and no `Option<..>`, so a missing key fails in the `Json<..>` extractor before the handler runs. `notes` is required but may be the empty string.",
       "fields": {
-        "member_name": { "type": "String", "doc": "Trimmed; must be non-empty and at most 200 characters." },
-        "room_type": { "type": "String", "doc": "Trimmed; must be non-empty and at most 100 characters." },
+        "member_name": {
+          "type": "String",
+          "doc": "Trimmed; must be non-empty and at most 200 characters."
+        },
+        "room_type": {
+          "type": "String",
+          "doc": "Trimmed; must be non-empty and at most 100 characters."
+        },
         "check_in": "DateTime",
-        "check_out": { "type": "DateTime", "doc": "Must be strictly after `check_in`, and no more than 366 days later." },
-        "workspace_plan": { "type": "String", "doc": "Trimmed; must be non-empty and at most 100 characters." },
+        "check_out": {
+          "type": "DateTime",
+          "doc": "Must be strictly after `check_in`, and no more than 366 days later."
+        },
+        "workspace_plan": {
+          "type": "String",
+          "doc": "Trimmed; must be non-empty and at most 100 characters."
+        },
         "status": "ReservationStatus",
-        "notes": { "type": "String", "doc": "Trimmed; at most 4000 characters. May be empty." }
+        "notes": {
+          "type": "String",
+          "doc": "Trimmed; at most 4000 characters. May be empty."
+        }
       }
     },
     "ReservationEvent": {
       "kind": "record",
       "doc": "The frame broadcast on the websocket after a create. It is not an HTTP response body, so no route declares it; it is declared here because it is part of the wire contract.",
       "fields": {
-        "event": { "type": "String", "doc": "Always `reservation.created` today -- the only event the server emits." },
+        "event": {
+          "type": "String",
+          "doc": "Always `reservation.created` today -- the only event the server emits."
+        },
         "reservation": "Reservation"
       }
     },
@@ -64,30 +88,329 @@
     "ApiError": {
       "kind": "record",
       "doc": "The error envelope every failing handler returns.",
-      "fields": { "code": "String", "message": "String" }
+      "fields": {
+        "code": "String",
+        "message": "String"
+      }
+    },
+    "PreInterestCreate": {
+      "kind": "record",
+      "doc": "Exact camelCase request shape from hhm-interfaces::intake::PreInterestCreate; validation is enforced by the owning Rust contract.",
+      "fields": {
+        "email": {
+          "type": "String",
+          "doc": "3..=320 chars; syntactically bounded email."
+        },
+        "linkedinUrl": {
+          "type": "String",
+          "doc": "HTTPS LinkedIn /in/ URL."
+        },
+        "entrepreneurshipIdea": {
+          "type": "String",
+          "doc": "40..=4000 trimmed chars."
+        },
+        "stayPreference": "StayPreference",
+        "privacyNoticeVersion": {
+          "type": "String",
+          "doc": "Must equal the current canonical privacy notice version."
+        },
+        "turnstileToken": {
+          "type": {
+            "kind": "option",
+            "inner": "String"
+          },
+          "required": false,
+          "doc": "Optional public anti-bot proof; when present 1..=4096 chars."
+        }
+      }
+    },
+    "UploadIntentCreate": {
+      "kind": "record",
+      "doc": "Exact camelCase request shape from hhm-interfaces::intake::UploadIntentCreate.",
+      "fields": {
+        "kind": "UploadKind",
+        "fileName": {
+          "type": "String",
+          "doc": "1..=255 chars; slash, backslash and NUL forbidden."
+        },
+        "contentType": {
+          "type": "String",
+          "doc": "Allowlisted by upload kind."
+        },
+        "sizeBytes": {
+          "type": "I64",
+          "doc": "1..=10485760 bytes."
+        },
+        "sha256": {
+          "type": "String",
+          "doc": "Exactly 64 lowercase hexadecimal characters."
+        },
+        "turnstileToken": {
+          "type": {
+            "kind": "option",
+            "inner": "String"
+          },
+          "required": false,
+          "doc": "Optional public anti-bot proof; when present 1..=4096 chars."
+        }
+      }
+    },
+    "UploadCompleteCreate": {
+      "kind": "record",
+      "doc": "Exact camelCase request shape from hhm-interfaces::intake::UploadCompleteCreate.",
+      "fields": {
+        "sha256": {
+          "type": "String",
+          "doc": "Exactly 64 lowercase hexadecimal characters."
+        },
+        "turnstileToken": {
+          "type": {
+            "kind": "option",
+            "inner": "String"
+          },
+          "required": false,
+          "doc": "Optional public anti-bot proof; when present 1..=4096 chars."
+        }
+      }
+    },
+    "ApplicationCreate": {
+      "kind": "record",
+      "doc": "Exact camelCase request shape from hhm-interfaces::intake::ApplicationCreate; field bounds remain enforced by the canonical Rust validator.",
+      "fields": {
+        "email": "String",
+        "linkedinUrl": "String",
+        "legalName": "String",
+        "dateOfBirth": "CalendarDate",
+        "nationality": "String",
+        "phone": "String",
+        "currentCity": "String",
+        "githubUrl": {
+          "type": {
+            "kind": "option",
+            "inner": "String"
+          },
+          "required": false,
+          "doc": "Optional HTTPS URL."
+        },
+        "portfolioUrl": {
+          "type": {
+            "kind": "option",
+            "inner": "String"
+          },
+          "required": false,
+          "doc": "Optional HTTPS URL."
+        },
+        "entrepreneurshipIdea": "String",
+        "projectStage": "ProjectStage",
+        "stayPreference": "StayPreference",
+        "preferredStartMonth": "CalendarDate",
+        "communityContribution": "String",
+        "accessibilityOrAccommodationNotes": {
+          "type": {
+            "kind": "option",
+            "inner": "String"
+          },
+          "required": false
+        },
+        "allergyNotes": {
+          "type": {
+            "kind": "option",
+            "inner": "String"
+          },
+          "required": false
+        },
+        "noiseSensitivity": "SensitivityLevel",
+        "lightSensitivity": "SensitivityLevel",
+        "roomPreferenceNotes": {
+          "type": {
+            "kind": "option",
+            "inner": "String"
+          },
+          "required": false
+        },
+        "roommatePreference": "RoommatePreference",
+        "preferredRoomOccupancy": {
+          "type": "I32",
+          "doc": "Must be 1..=3."
+        },
+        "roommateForLowerCost": "Bool",
+        "roommateForSocialConnection": "Bool",
+        "accommodationDataConsent": {
+          "type": "Bool",
+          "doc": "Must be true."
+        },
+        "resumeUploadId": "Uuid",
+        "photoIdUploadId": "Uuid",
+        "ageAndIdentityAttestation": {
+          "type": "Bool",
+          "doc": "Must be true."
+        },
+        "privacyNoticeVersion": "String",
+        "turnstileToken": {
+          "type": {
+            "kind": "option",
+            "inner": "String"
+          },
+          "required": false,
+          "doc": "Optional public anti-bot proof; when present 1..=4096 chars."
+        }
+      }
+    },
+    "ReferralCreate": {
+      "kind": "record",
+      "doc": "Exact camelCase request shape from hhm-interfaces::intake::ReferralCreate.",
+      "fields": {
+        "refereeName": "String",
+        "refereeEmail": "String",
+        "refereeLinkedinUrl": "String",
+        "relationship": "String",
+        "rationale": "String",
+        "stayPreference": {
+          "type": {
+            "kind": "option",
+            "inner": "StayPreference"
+          },
+          "required": false
+        },
+        "nomineeConsentConfirmed": {
+          "type": "Bool",
+          "doc": "Must be true."
+        }
+      }
+    },
+    "IssueQrRequest": {
+      "kind": "record",
+      "doc": "Exact request shape from hhm-api visitor contract.",
+      "fields": {
+        "door_id": {
+          "type": "String",
+          "doc": "Configured door id; <=64 chars and restricted to lowercase ASCII, digits, '-' and '_'."
+        }
+      }
+    },
+    "CheckInRequest": {
+      "kind": "record",
+      "doc": "Exact request shape from hhm-api visitor contract.",
+      "fields": {
+        "door_id": "String",
+        "qr_token": {
+          "type": "String",
+          "doc": "Bounded visitor QR token; <=1024 bytes."
+        },
+        "display_name": {
+          "type": "String",
+          "doc": "Trimmed non-control text; <=120 chars."
+        },
+        "privacy_notice_version": {
+          "type": "String",
+          "doc": "Must match configured visitor privacy notice version."
+        }
+      }
+    },
+    "CheckOutRequest": {
+      "kind": "record",
+      "doc": "Exact request shape from hhm-api visitor contract.",
+      "fields": {
+        "door_id": "String",
+        "qr_token": {
+          "type": "String",
+          "doc": "Bounded visitor QR token; <=1024 bytes."
+        },
+        "visit_id": "Uuid",
+        "checkout_receipt": {
+          "type": "String",
+          "doc": "Private checkout receipt; 1..=256 bytes and no control characters."
+        }
+      }
+    },
+    "StayPreference": {
+      "kind": "enum",
+      "variants": [
+        "three_months",
+        "six_months"
+      ],
+      "doc": "Canonical hhm-interfaces StayPreference wire values."
+    },
+    "ProjectStage": {
+      "kind": "enum",
+      "variants": [
+        "idea",
+        "prototype",
+        "early_revenue",
+        "growing",
+        "nonprofit_or_open_source"
+      ],
+      "doc": "Canonical hhm-interfaces ProjectStage wire values."
+    },
+    "SensitivityLevel": {
+      "kind": "enum",
+      "variants": [
+        "none",
+        "low",
+        "moderate",
+        "high",
+        "prefer_not_to_say"
+      ],
+      "doc": "Canonical hhm-interfaces SensitivityLevel wire values."
+    },
+    "RoommatePreference": {
+      "kind": "enum",
+      "variants": [
+        "private_room",
+        "open_to_roommates",
+        "prefer_roommates",
+        "flexible"
+      ],
+      "doc": "Canonical hhm-interfaces RoommatePreference wire values."
+    },
+    "UploadKind": {
+      "kind": "enum",
+      "variants": [
+        "resume",
+        "photo_id"
+      ],
+      "doc": "Canonical hhm-interfaces UploadKind wire values."
+    },
+    "CalendarDate": {
+      "kind": "scalar",
+      "base": "String",
+      "format": "date",
+      "doc": "ISO calendar date (Rust chrono::NaiveDate)."
     }
   },
   "map": {
     "healthz": {
       "path": "/healthz",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Liveness plus which optional backends are configured.",
       "response": "Health"
     },
     "list_reservations": {
       "path": "/v1/reservations",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Every reservation, oldest `created_at` first.",
-      "response": { "kind": "list", "item": "Reservation" }
+      "response": {
+        "kind": "list",
+        "item": "Reservation"
+      }
     },
     "create_reservation": {
       "path": "/v1/reservations",
-      "methods": ["POST"],
+      "methods": [
+        "POST"
+      ],
       "summary": "Create a stay. Responds 201 with the stored record.",
       "doc": "Queued through opto-sync: this is the org's one durable write, and hhm-sync is built to reconcile exactly these records (it merges arrays by `id` with last-writer-wins on `updated_at`). The queue mints its own record id because the request body carries none -- the server mints the authoritative `Reservation.id` when it accepts the call.",
       "request": "CreateReservation",
       "response": "Reservation",
-      "errors": { "422": "ApiError", "500": "ApiError" },
+      "errors": {
+        "422": "ApiError",
+        "500": "ApiError"
+      },
       "delivery": "opto_sync_queued",
       "opto_sync": {
         "table": "hhm_reservations",
@@ -97,16 +420,119 @@
     },
     "get_reservation": {
       "path": "/v1/reservations/{id}",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "One reservation by id.",
-      "path_params": { "id": "ReservationId" },
+      "path_params": {
+        "id": "ReservationId"
+      },
       "response": "Reservation",
-      "errors": { "404": "ApiError" }
+      "errors": {
+        "404": "ApiError"
+      }
     },
     "reservation_events": {
       "path": "/v1/ws",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Websocket upgrade. Frames are `ReservationEvent` JSON; the server answers ping with pong and sends nothing else.",
+      "client": false
+    },
+    "readyz": {
+      "path": "/readyz",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Readiness across configured persistence backends.",
+      "response": "Json",
+      "client": false
+    },
+    "create_pre_interest": {
+      "path": "/v1/pre-interests",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Submit a bounded pre-interest intake record.",
+      "request": "PreInterestCreate",
+      "response": "Json",
+      "client": false
+    },
+    "create_upload_intent": {
+      "path": "/v1/intake/uploads",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Create a bounded intake upload intent.",
+      "request": "UploadIntentCreate",
+      "response": "Json",
+      "client": false
+    },
+    "complete_upload": {
+      "path": "/v1/intake/uploads/{upload_id}/complete",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Complete an admitted intake upload by immutable upload id.",
+      "path_params": {
+        "upload_id": "Uuid"
+      },
+      "request": "UploadCompleteCreate",
+      "response": "Json",
+      "client": false
+    },
+    "create_application": {
+      "path": "/v1/applications",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Submit an application intake record.",
+      "request": "ApplicationCreate",
+      "response": "Json",
+      "client": false
+    },
+    "create_referral": {
+      "path": "/v1/referrals",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Submit an authenticated referral intake record.",
+      "request": "ReferralCreate",
+      "response": "Json",
+      "client": false
+    },
+    "issue_visitor_qr": {
+      "path": "/v1/visitor-qr/{action}",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Issue an authenticated visitor QR action.",
+      "path_params": {
+        "action": "String"
+      },
+      "request": "IssueQrRequest",
+      "response": "Json",
+      "client": false
+    },
+    "visitor_check_in": {
+      "path": "/v1/visits/check-in",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Accept a visitor check-in receipt.",
+      "request": "CheckInRequest",
+      "response": "Json",
+      "client": false
+    },
+    "visitor_check_out": {
+      "path": "/v1/visits/check-out",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Accept a visitor check-out receipt.",
+      "request": "CheckOutRequest",
+      "response": "Json",
       "client": false
     }
   }

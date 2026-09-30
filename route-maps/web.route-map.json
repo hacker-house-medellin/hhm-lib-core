@@ -7,41 +7,86 @@
   "types": {
     "Health": {
       "kind": "record",
-      "doc": "Built inline with serde_json::json!, so the field names below are the whole contract.",
+      "doc": "Current JSON liveness response from hhm-web-server.",
       "fields": {
+        "service": "String",
         "status": "String",
-        "database": { "type": "Bool", "doc": "True when DATABASE_URL was set and the SeaORM connection succeeded at boot." },
-        "supabase": { "type": "Bool", "doc": "True when SUPABASE_URL was set." }
+        "database_configured": "Bool",
+        "supabase_configured": "Bool",
+        "auth_configured": "Bool"
       }
     },
     "NewItem": {
       "kind": "record",
       "doc": "The urlencoded body of the HTMX create form. Both fields are required: the Rust struct has no defaults, and both inputs carry the HTML `required` attribute.",
-      "fields": { "title": "String", "detail": "String" }
+      "fields": {
+        "title": "String",
+        "detail": "String"
+      }
+    },
+    "Readiness": {
+      "kind": "record",
+      "doc": "Current process/configuration readiness response from hhm-web-server.",
+      "fields": {
+        "service": "String",
+        "status": "String",
+        "scope": "String"
+      }
+    },
+    "EntryKind": {
+      "kind": "enum",
+      "variants": [
+        "individual",
+        "organization"
+      ],
+      "doc": "Secure-entry mode accepted by AuthStartForm."
+    },
+    "AuthStartForm": {
+      "kind": "record",
+      "doc": "URL-encoded secure-entry form; Rust uses deny_unknown_fields.",
+      "fields": {
+        "kind": "EntryKind",
+        "csrf": {
+          "type": "String",
+          "doc": "Must match the bounded __Host-hhaus-entry-csrf cookie."
+        },
+        "turnstile_response": {
+          "type": "String",
+          "doc": "Rust field serialized from form key `cf-turnstile-response`; Cloudflare Turnstile proof verified server-side."
+        }
+      }
     }
   },
   "map": {
     "home": {
       "path": "/",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Server-rendered dashboard (maud) with the HTMX create form.",
       "client": false
     },
     "healthz": {
       "path": "/healthz",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Liveness plus which optional backends are configured.",
       "response": "Health"
     },
     "list_reservations_partial": {
       "path": "/partials/reservations",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "The reservation list as an HTML fragment, swapped into #items by HTMX.",
       "client": false
     },
     "create_reservation_partial": {
       "path": "/partials/reservations",
-      "methods": ["POST"],
+      "methods": [
+        "POST"
+      ],
       "summary": "Append an item from the browser form and re-render the list fragment. Returns HTML, not JSON.",
       "request": "NewItem",
       "content_type": "form",
@@ -49,8 +94,68 @@
     },
     "reservation_events": {
       "path": "/ws",
-      "methods": ["GET"],
+      "methods": [
+        "GET"
+      ],
       "summary": "Websocket upgrade. Frames are the plain-text string `created:<uuid>`, not JSON; the page uses them only as a hint to re-fetch the list fragment.",
+      "client": false
+    },
+    "join_individual": {
+      "path": "/join/individual",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Render secure individual-entry page and mint a short-lived CSRF cookie.",
+      "client": false
+    },
+    "join_organization": {
+      "path": "/join/organization",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Render secure organization-entry page and mint a short-lived CSRF cookie.",
+      "client": false
+    },
+    "auth_start": {
+      "path": "/auth/start",
+      "methods": [
+        "POST"
+      ],
+      "summary": "Verify exact origin, CSRF and Turnstile before redirecting into Shared Auth.",
+      "request": "AuthStartForm",
+      "content_type": "form",
+      "client": false
+    },
+    "onboarding_individual": {
+      "path": "/onboarding/individual",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Authenticated individual onboarding shell backed by server-side Shared Auth session/delegation.",
+      "client": false
+    },
+    "onboarding_organization": {
+      "path": "/onboarding/organization",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Authenticated organization onboarding shell backed by server-side Shared Auth session/delegation.",
+      "client": false
+    },
+    "readyz": {
+      "path": "/readyz",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Process and configuration readiness.",
+      "response": "Readiness"
+    },
+    "chat_events": {
+      "path": "/ws/chat",
+      "methods": [
+        "GET"
+      ],
+      "summary": "Authenticated websocket alias for realtime reservation/chat refresh events.",
       "client": false
     }
   }

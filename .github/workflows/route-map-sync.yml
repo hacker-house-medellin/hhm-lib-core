@@ -8,47 +8,99 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: route-map-sync-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sync:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - name: Check out contract authority
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: hacker-house-medellin/hhm-interfaces
-          path: ../hhm-interfaces
-      - uses: actions/checkout@v4
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact authority candidate
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Check out API server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-api-server.rs
-          path: ../hhm-api-server.rs
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-api-server.rs
+          persist-credentials: false
+
+      - name: Check out API
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-api
-          path: ../hhm-api
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-api
+          persist-credentials: false
+
+      - name: Check out web server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-web-server.rs
-          path: ../hhm-web-server.rs
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-web-server.rs
+          persist-credentials: false
+
+      - name: Check out Mash web
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-mash-web
-          path: ../hhm-mash-web
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-mash-web
+          persist-credentials: false
+
+      - name: Check out Leptos web
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-leptos-web
-          path: ../hhm-leptos-web
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-leptos-web
+          persist-credentials: false
+
+      - name: Check out Dioxus web
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-dioxus-web
-          path: ../hhm-dioxus-web
-      - uses: actions/checkout@v4
+          path: .route-sync/hhm-dioxus-web
+          persist-credentials: false
+
+      - name: Check out sync service
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hacker-house-medellin/hhm-sync
-          path: ../hhm-sync
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      # No pip install: the checker and generator are standard library only, so
-      # CI and a developer laptop cannot reach different verdicts.
-      - name: Validate the route maps and the generated clients
-        run: python3 scripts/check-route-sync.py --root .
+          path: .route-sync/hhm-sync
+          persist-credentials: false
+
+      - name: Validate canonical route maps against live sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          check() {
+            local map="$1"
+            shift
+            args=(--root . --map "$map" --allow-docs-merge --skip-drift)
+            for source in "$@"; do
+              args+=(--source "$source")
+            done
+            python3 scripts/check-route-sync.py "${args[@]}"
+          }
+
+          check route-maps/api.route-map.json \
+            .route-sync/hhm-api-server.rs/src .route-sync/hhm-api/src
+          check route-maps/web.route-map.json \
+            .route-sync/hhm-web-server.rs/src
+          check route-maps/mash.route-map.json \
+            .route-sync/hhm-mash-web/src
+          check route-maps/leptos.route-map.json \
+            .route-sync/hhm-leptos-web/src
+          check route-maps/dioxus.route-map.json \
+            .route-sync/hhm-dioxus-web/src
+          check route-maps/sync.route-map.json \
+            .route-sync/hhm-sync/src

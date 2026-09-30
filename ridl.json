@@ -38,14 +38,6 @@
       ]
     }
   ],
-  "identical_to": [
-    "../hhm-interfaces/route-maps/api.route-map.json",
-    "../hhm-interfaces/route-maps/web.route-map.json",
-    "../hhm-interfaces/route-maps/mash.route-map.json",
-    "../hhm-interfaces/route-maps/leptos.route-map.json",
-    "../hhm-interfaces/route-maps/dioxus.route-map.json",
-    "../hhm-interfaces/route-maps/sync.route-map.json"
-  ],
   "out": "generated",
   "skip_drift": true,
   "allow_docs_merge": true
