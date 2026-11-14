@@ -9,15 +9,21 @@ export const serviceCatalog = Object.freeze({
 export function normalizeEmail(email) {
   if (typeof email !== 'string') return null;
   const value = email.trim().toLowerCase();
-  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value) ? value : null;
+  return value.length <= 254 && !/[\u0000-\u001f\u007f]/u.test(value) && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value) ? value : null;
+}
+
+export function normalizeLeadName(name) {
+  if (typeof name !== 'string' || /[\u0000-\u001f\u007f]/u.test(name)) return null;
+  const value = name.trim().replace(/ {2,}/gu, ' ');
+  return value.length >= 2 && value.length <= 120 ? value : null;
 }
 
 export function validateLead(input) {
   if (!input || typeof input !== 'object') return { ok: false, error: 'lead must be an object' };
   const email = normalizeEmail(input.email);
   if (!email) return { ok: false, error: 'valid email is required' };
-  const name = String(input.name || '').trim();
-  if (name.length < 2) return { ok: false, error: 'name must be at least two characters' };
+  const name = normalizeLeadName(input.name);
+  if (!name) return { ok: false, error: 'name must be between 2 and 120 characters without control characters' };
   return { ok: true, value: { ...input, email, name } };
 }
 
