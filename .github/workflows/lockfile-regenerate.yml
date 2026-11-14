@@ -1,0 +1,34 @@
+name: Temporary lockfile regeneration
+
+on:
+  pull_request:
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**/Cargo.toml'
+      - '.github/workflows/lockfile-regenerate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout the PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install supported Rust
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30
+        with:
+          toolchain: '1.88.0'
+      - name: Resolve available dependency security updates
+        run: cargo +1.88.0 update
+      - name: Emit reproducible lockfile for review
+        shell: bash
+        run: |
+          printf '%s\n' 'HHM_LOCKFILE_BEGIN'
+          base64 Cargo.lock
+          printf '%s\n' 'HHM_LOCKFILE_END'
