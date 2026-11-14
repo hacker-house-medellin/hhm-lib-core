@@ -25,5 +25,5 @@ jobs:
           toolchain: '1.88.0'
       - name: Print SQLite dependency paths and enabling features
         run: |
-          cargo +1.88.0 tree --locked -i libsqlite3-sys -e features
-          cargo +1.88.0 tree --locked -i sqlx-sqlite -e features
+          cargo +1.88.0 tree --locked --all-features --target all -i libsqlite3-sys -e features
+          cargo +1.88.0 tree --locked --all-features --target all -i sqlx-sqlite -e features
